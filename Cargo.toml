@@ -50,6 +50,13 @@ twilight-http = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "c
 twilight-model = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "custom-new" }
 form_urlencoded = "1.1.0"
 
+[patch.'https://github.com/Gelbpunkt/twilight.git']
+twilight-cache-inmemory = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new" }
+twilight-gateway = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new" }
+twilight-gateway-queue = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new" }
+twilight-http = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new" }
+twilight-model = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new" }
+
 [features]
 default = ["simd"]
 simd = ["flate2/zlib-ng", "simd-json", "twilight-gateway/zlib-simd", "twilight-gateway/simd-json", "twilight-http/simd-json"]
