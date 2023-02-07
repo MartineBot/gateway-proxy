@@ -1,13 +1,15 @@
 #[cfg(feature = "simd-json")]
 use halfbrown::hashmap;
+use hyper::{Body, Response};
 use serde::Serialize;
 #[cfg(not(feature = "simd-json"))]
 use serde_json::Value as OwnedValue;
+use simd_json::to_string;
 #[cfg(feature = "simd-json")]
 use simd_json::OwnedValue;
 use twilight_cache_inmemory::{InMemoryCache, InMemoryCacheStats, UpdateCache};
 use twilight_model::{
-    channel::{message::Sticker, Channel, StageInstance, ChannelType},
+    channel::{message::Sticker, Channel, ChannelType, StageInstance},
     gateway::{
         payload::incoming::{GuildCreate, GuildDelete},
         presence::{Presence, UserOrId},
@@ -15,7 +17,7 @@ use twilight_model::{
     },
     guild::{Emoji, Guild, Member, Role},
     id::{
-        marker::{GuildMarker, UserMarker},
+        marker::{ChannelMarker, GuildMarker, UserMarker},
         Id,
     },
     voice::VoiceState,
@@ -23,7 +25,7 @@ use twilight_model::{
 
 use std::sync::Arc;
 
-use crate::model::JsonObject;
+use crate::{model::JsonObject, state::State};
 
 #[derive(Serialize)]
 pub struct Payload {
@@ -46,6 +48,10 @@ pub struct Guilds(Arc<InMemoryCache>, u64);
 impl Guilds {
     pub fn new(cache: Arc<InMemoryCache>, shard_id: u64) -> Self {
         Self(cache, shard_id)
+    }
+
+    pub fn cache(&self) -> Arc<InMemoryCache> {
+        self.0.clone()
     }
 
     pub fn update(&self, value: impl UpdateCache) {
@@ -114,7 +120,6 @@ impl Guilds {
                         } else {
                             Some(channel.value().clone())
                         }
-
                     })
                     .collect()
             })
@@ -404,5 +409,83 @@ impl Guilds {
                 }
             }
         })
+    }
+}
+
+pub(crate) fn handle_cache_guild(guild_id: Id<GuildMarker>, state: State) -> Response<Body> {
+    let mut guild = None;
+    for shard in &state.shards {
+        if !shard.guilds.cache().guild(guild_id).is_none() {
+            guild = Some(shard.guilds.cache().guild(guild_id).unwrap().clone());
+        }
+    }
+
+    let response = Response::builder().header("Content-Type", "JSON");
+    if guild.is_none() {
+        return response
+            .status(404)
+            .body(Body::from("Unknown Guild"))
+            .unwrap();
+    }
+
+    if let Ok(serialized) = to_string(&guild.unwrap()) {
+        return response.body(Body::from(serialized)).unwrap();
+    } else {
+        return response
+            .status(503)
+            .body(Body::from("Failed to serialize guild"))
+            .unwrap();
+    }
+}
+
+pub(crate) fn handle_cache_channel(channel_id: Id<ChannelMarker>, state: State) -> Response<Body> {
+    let mut channel = None;
+    for shard in &state.shards {
+        if !shard.guilds.cache().channel(channel_id).is_none() {
+            channel = Some(shard.guilds.cache().channel(channel_id).unwrap().clone());
+        }
+    }
+
+    let response = Response::builder().header("Content-Type", "JSON");
+    if channel.is_none() {
+        return response
+            .status(404)
+            .body(Body::from("Unknown Channel"))
+            .unwrap();
+    }
+
+    if let Ok(serialized) = to_string(&channel.unwrap()) {
+        return response.body(Body::from(serialized)).unwrap();
+    } else {
+        return response
+            .status(503)
+            .body(Body::from("Failed to serialize channel"))
+            .unwrap();
+    }
+}
+
+pub(crate) fn handle_cache_user(user_id: Id<UserMarker>, state: State) -> Response<Body> {
+    let mut user = None;
+    for shard in &state.shards {
+        if !shard.guilds.cache().user(user_id).is_none() {
+            user = Some(shard.guilds.cache().user(user_id).unwrap().clone());
+        }
+    }
+
+    let response = Response::builder().header("Content-Type", "JSON");
+    if user.is_none() {
+        return response
+            .status(404)
+            .body(Body::from("Unknown User"))
+            .unwrap();
+    }
+
+    if let Ok(serialized) = to_string(&user.unwrap()) {
+        return response.body(Body::from(serialized)).unwrap();
+    } else {
+        return response
+            .status(503)
+            .body(Body::from("Failed to serialize user"))
+            .unwrap();
     }
 }

@@ -48,6 +48,14 @@ twilight-http = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "c
     "rustls-webpki-roots",
 ] }
 twilight-model = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "custom-new" }
+form_urlencoded = "1.1.0"
+
+[patch.'https://github.com/Gelbpunkt/twilight.git']
+twilight-cache-inmemory = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new" }
+twilight-gateway = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new" }
+twilight-gateway-queue = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new" }
+twilight-http = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new" }
+twilight-model = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new" }
 
 [features]
 default = ["simd"]
