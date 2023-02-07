@@ -25,4 +25,5 @@ jobs:
           username: MartineBot
           password: "${{ secrets.GITHUB_TOKEN }}"
           registry: ghcr.io
+          image_name: gateway-proxy
           tags: "latest,${{ github.sha }}"
