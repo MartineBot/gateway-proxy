@@ -26,12 +26,15 @@ use tokio_tungstenite::{
 };
 use tracing::{debug, error, info, trace, warn};
 use twilight_gateway::shard::raw_message::Message as TwilightMessage;
-use twilight_model::id::{marker::GuildMarker, Id};
+use twilight_model::id::{
+    marker::{ChannelMarker, GuildMarker, UserMarker},
+    Id,
+};
 
 use std::{convert::Infallible, net::SocketAddr, pin::Pin, sync::Arc};
 
 use crate::{
-    cache::{handle_cache_guild, Event},
+    cache::{handle_cache_channel, handle_cache_guild, handle_cache_user, Event},
     config::CONFIG,
     deserializer::{GatewayEvent, SequenceInfo},
     model::{Identify, Resume},
@@ -381,11 +384,50 @@ fn handle_cache(
             .body(Body::from("Unknown cache request"))
             .unwrap();
 
-        for (k, v) in form_urlencoded::parse(parts.uri.query().unwrap().as_bytes()) {
-            if k == "guild_id" {
-                let guild_id = Id::<GuildMarker>::new(v.to_owned().parse::<u64>().unwrap());
-                response = handle_cache_guild(guild_id, state.clone());
+        match parts.uri.path() {
+            "/cache/guild" => {
+                let mut guild_id = None;
+
+                for (k, v) in form_urlencoded::parse(parts.uri.query().unwrap().as_bytes()) {
+                    if k == "id" {
+                        guild_id =
+                            Some(Id::<GuildMarker>::new(v.to_owned().parse::<u64>().unwrap()));
+                    }
+                }
+
+                if let Some(guild_id) = guild_id {
+                    response = handle_cache_guild(guild_id, state.clone());
+                }
             }
+            "/cache/channel" => {
+                let mut channel_id = None;
+
+                for (k, v) in form_urlencoded::parse(parts.uri.query().unwrap().as_bytes()) {
+                    if k == "id" {
+                        channel_id = Some(Id::<ChannelMarker>::new(
+                            v.to_owned().parse::<u64>().unwrap(),
+                        ));
+                    }
+                }
+
+                if let Some(channel_id) = channel_id {
+                    response = handle_cache_channel(channel_id, state.clone());
+                }
+            }
+            "/cache/user" => {
+                let mut user_id = None;
+
+                for (k, v) in form_urlencoded::parse(parts.uri.query().unwrap().as_bytes()) {
+                    if k == "id" {
+                        user_id = Some(Id::<UserMarker>::new(v.to_owned().parse::<u64>().unwrap()));
+                    }
+                }
+
+                if let Some(user_id) = user_id {
+                    response = handle_cache_user(user_id, state.clone());
+                }
+            }
+            _ => {}
         }
 
         Ok(response)
@@ -411,7 +453,7 @@ pub async fn run(
                 if incoming.uri().path() == "/metrics" {
                     // Reply with metrics on /metrics
                     handle_metrics(metrics_handle.clone())
-                } else if incoming.uri().path() == "/cache" {
+                } else if incoming.uri().path().starts_with("/cache") {
                     handle_cache(incoming.into_parts().0, state.clone())
                 } else {
                     // On anything else just provide the websocket server

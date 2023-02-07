@@ -17,7 +17,7 @@ use twilight_model::{
     },
     guild::{Emoji, Guild, Member, Role},
     id::{
-        marker::{GuildMarker, UserMarker},
+        marker::{ChannelMarker, GuildMarker, UserMarker},
         Id,
     },
     voice::VoiceState,
@@ -434,6 +434,58 @@ pub(crate) fn handle_cache_guild(guild_id: Id<GuildMarker>, state: State) -> Res
         return response
             .status(503)
             .body(Body::from("Failed to serialize guild"))
+            .unwrap();
+    }
+}
+
+pub(crate) fn handle_cache_channel(channel_id: Id<ChannelMarker>, state: State) -> Response<Body> {
+    let mut channel = None;
+    for shard in &state.shards {
+        if !shard.guilds.cache().channel(channel_id).is_none() {
+            channel = Some(shard.guilds.cache().channel(channel_id).unwrap().clone());
+        }
+    }
+
+    let response = Response::builder().header("Content-Type", "JSON");
+    if channel.is_none() {
+        return response
+            .status(404)
+            .body(Body::from("Unknown Channel"))
+            .unwrap();
+    }
+
+    if let Ok(serialized) = to_string(&channel.unwrap()) {
+        return response.body(Body::from(serialized)).unwrap();
+    } else {
+        return response
+            .status(503)
+            .body(Body::from("Failed to serialize channel"))
+            .unwrap();
+    }
+}
+
+pub(crate) fn handle_cache_user(user_id: Id<UserMarker>, state: State) -> Response<Body> {
+    let mut user = None;
+    for shard in &state.shards {
+        if !shard.guilds.cache().user(user_id).is_none() {
+            user = Some(shard.guilds.cache().user(user_id).unwrap().clone());
+        }
+    }
+
+    let response = Response::builder().header("Content-Type", "JSON");
+    if user.is_none() {
+        return response
+            .status(404)
+            .body(Body::from("Unknown User"))
+            .unwrap();
+    }
+
+    if let Ok(serialized) = to_string(&user.unwrap()) {
+        return response.body(Body::from(serialized)).unwrap();
+    } else {
+        return response
+            .status(503)
+            .body(Body::from("Failed to serialize user"))
             .unwrap();
     }
 }
