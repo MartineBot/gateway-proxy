@@ -23,7 +23,7 @@ use twilight_model::{
     voice::VoiceState,
 };
 
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use crate::{model::JsonObject, state::State};
 
@@ -420,23 +420,19 @@ pub(crate) fn handle_cache_guild(guild_id: Id<GuildMarker>, state: State) -> Res
         }
     }
 
+    let response = Response::builder().header("Content-Type", "JSON");
     if guild.is_none() {
-        return Response::builder()
+        return response
             .status(404)
-            .header("Content-Type", "JSON")
             .body(Body::from("Unknown Guild"))
             .unwrap();
     }
 
     if let Ok(serialized) = to_string(&guild.unwrap()) {
-        return Response::builder()
-            .header("Content-Type", "JSON")
-            .body(Body::from(serialized))
-            .unwrap();
+        return response.body(Body::from(serialized)).unwrap();
     } else {
-        return Response::builder()
+        return response
             .status(503)
-            .header("Content-Type", "JSON")
             .body(Body::from("Failed to serialize guild"))
             .unwrap();
     }
