@@ -1,13 +1,15 @@
 #[cfg(feature = "simd-json")]
 use halfbrown::hashmap;
+use hyper::{Body, Response};
 use serde::Serialize;
 #[cfg(not(feature = "simd-json"))]
 use serde_json::Value as OwnedValue;
+use simd_json::to_string;
 #[cfg(feature = "simd-json")]
 use simd_json::OwnedValue;
 use twilight_cache_inmemory::{InMemoryCache, InMemoryCacheStats, UpdateCache};
 use twilight_model::{
-    channel::{message::Sticker, Channel, StageInstance, ChannelType},
+    channel::{message::Sticker, Channel, ChannelType, StageInstance},
     gateway::{
         payload::incoming::{GuildCreate, GuildDelete},
         presence::{Presence, UserOrId},
@@ -21,9 +23,9 @@ use twilight_model::{
     voice::VoiceState,
 };
 
-use std::sync::Arc;
+use std::{convert::Infallible, sync::Arc};
 
-use crate::model::JsonObject;
+use crate::{model::JsonObject, state::State};
 
 #[derive(Serialize)]
 pub struct Payload {
@@ -118,7 +120,6 @@ impl Guilds {
                         } else {
                             Some(channel.value().clone())
                         }
-
                     })
                     .collect()
             })
@@ -408,5 +409,27 @@ impl Guilds {
                 }
             }
         })
+    }
+}
+
+pub(crate) fn handle_cache_guild(guild_id: Id<GuildMarker>, state: State) -> Response<Body> {
+    let mut guild = None;
+    for shard in &state.shards {
+        if !shard.guilds.cache().guild(guild_id).is_none() {
+            guild = Some(shard.guilds.cache().guild(guild_id).unwrap().clone());
+        }
+    }
+
+    if let Ok(serialized) = to_string(&guild.unwrap()) {
+        return Response::builder()
+            .header("Content-Type", "JSON")
+            .body(Body::from(serialized))
+            .unwrap();
+    } else {
+        return Response::builder()
+            .status(404)
+            .header("Content-Type", "JSON")
+            .body(Body::from("Unknown Guild"))
+            .unwrap();
     }
 }

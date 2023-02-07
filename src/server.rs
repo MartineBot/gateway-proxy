@@ -31,7 +31,7 @@ use twilight_model::id::{marker::GuildMarker, Id};
 use std::{convert::Infallible, net::SocketAddr, pin::Pin, sync::Arc};
 
 use crate::{
-    cache::Event,
+    cache::{handle_cache_guild, Event},
     config::CONFIG,
     deserializer::{GatewayEvent, SequenceInfo},
     model::{Identify, Resume},
@@ -375,37 +375,20 @@ fn handle_cache(
     state: State,
 ) -> Pin<Box<dyn Future<Output = Result<Response<Body>, Infallible>> + Send + 'static>> {
     Box::pin(async move {
-        let mut guild_id: Option<u64> = None;
+        let mut response = Response::builder()
+            .status(404)
+            .header("Content-Type", "JSON")
+            .body(Body::from("Unknown cache request"))
+            .unwrap();
+
         for (k, v) in form_urlencoded::parse(parts.uri.query().unwrap().as_bytes()) {
             if k == "guild_id" {
-                guild_id = Some(v.to_owned().parse::<u64>().unwrap());
+                let guild_id = Id::<GuildMarker>::new(v.to_owned().parse::<u64>().unwrap());
+                response = handle_cache_guild(guild_id, state.clone());
             }
         }
 
-        if !guild_id.is_none() {
-            let guild_marker = Id::<GuildMarker>::new(guild_id.unwrap());
-            let mut guild = None;
-            for shard in &state.shards {
-                if !shard.guilds.cache().guild(guild_marker).is_none() {
-                    guild = Some(shard.guilds.cache().guild(guild_marker).unwrap().clone());
-                }
-            }
-            let mut response = Response::builder()
-                .status(404)
-                .header("Content-Type", "JSON")
-                .body(Body::from("Unknown Guild"));
-            if !guild.is_none() {
-                let guild_data = guild.unwrap();
-                if let Ok(serialized) = to_string(&guild_data) {
-                    response = Response::builder()
-                        .header("Content-Type", "JSON")
-                        .body(Body::from(serialized));
-                }
-            }
-            Ok(response.unwrap())
-        } else {
-            Ok(Response::builder().status(404).body(Body::empty()).unwrap())
-        }
+        Ok(response)
     })
 }
 
