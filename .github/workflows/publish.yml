@@ -38,5 +38,5 @@ jobs:
           context: .
           push: true
           tags: |
-            gchr.io/MartineBot/gateway-proxy:latest
+            gchr.io/martinebot/gateway-proxy:latest
           labels: ${{ steps.meta.outputs.labels }}
