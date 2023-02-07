@@ -243,6 +243,7 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "flate2",
+ "form_urlencoded",
  "futures-util",
  "halfbrown",
  "hyper",

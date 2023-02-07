@@ -1,6 +1,7 @@
 use flate2::{Compress, Compression, FlushCompress, Status};
 use futures_util::{Future, Sink, SinkExt, StreamExt};
 use hyper::{
+    http::request::Parts,
     server::conn::AddrStream,
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server,
@@ -25,6 +26,7 @@ use tokio_tungstenite::{
 };
 use tracing::{debug, error, info, trace, warn};
 use twilight_gateway::shard::raw_message::Message as TwilightMessage;
+use twilight_model::id::{marker::GuildMarker, Id};
 
 use std::{convert::Infallible, net::SocketAddr, pin::Pin, sync::Arc};
 
@@ -368,6 +370,45 @@ fn handle_metrics(
     })
 }
 
+fn handle_cache(
+    parts: Parts,
+    state: State,
+) -> Pin<Box<dyn Future<Output = Result<Response<Body>, Infallible>> + Send + 'static>> {
+    Box::pin(async move {
+        let mut guild_id: Option<u64> = None;
+        for (k, v) in form_urlencoded::parse(parts.uri.query().unwrap().as_bytes()) {
+            if k == "guild_id" {
+                guild_id = Some(v.to_owned().parse::<u64>().unwrap());
+            }
+        }
+
+        if !guild_id.is_none() {
+            let guild_marker = Id::<GuildMarker>::new(guild_id.unwrap());
+            let mut guild = None;
+            for shard in &state.shards {
+                if !shard.guilds.cache().guild(guild_marker).is_none() {
+                    guild = Some(shard.guilds.cache().guild(guild_marker).unwrap().clone());
+                }
+            }
+            let mut response = Response::builder()
+                .status(404)
+                .header("Content-Type", "JSON")
+                .body(Body::from("Unknown Guild"));
+            if !guild.is_none() {
+                let guild_data = guild.unwrap();
+                if let Ok(serialized) = to_string(&guild_data) {
+                    response = Response::builder()
+                        .header("Content-Type", "JSON")
+                        .body(Body::from(serialized));
+                }
+            }
+            Ok(response.unwrap())
+        } else {
+            Ok(Response::builder().status(404).body(Body::empty()).unwrap())
+        }
+    })
+}
+
 pub async fn run(
     port: u16,
     state: State,
@@ -387,6 +428,8 @@ pub async fn run(
                 if incoming.uri().path() == "/metrics" {
                     // Reply with metrics on /metrics
                     handle_metrics(metrics_handle.clone())
+                } else if incoming.uri().path() == "/cache" {
+                    handle_cache(incoming.into_parts().0, state.clone())
                 } else {
                     // On anything else just provide the websocket server
                     Box::pin(upgrade::server(addr, incoming, state.clone()))

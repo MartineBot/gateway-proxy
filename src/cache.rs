@@ -48,6 +48,10 @@ impl Guilds {
         Self(cache, shard_id)
     }
 
+    pub fn cache(&self) -> Arc<InMemoryCache> {
+        self.0.clone()
+    }
+
     pub fn update(&self, value: impl UpdateCache) {
         self.0.update(value);
     }
