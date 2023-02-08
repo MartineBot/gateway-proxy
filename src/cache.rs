@@ -420,7 +420,7 @@ pub(crate) fn handle_cache_guild(guild_id: Id<GuildMarker>, state: State) -> Res
         }
     }
 
-    let response = Response::builder().header("Content-Type", "JSON");
+    let response = Response::builder().header("Content-Type", "application/json");
     if guild.is_none() {
         return response
             .status(404)
@@ -446,7 +446,7 @@ pub(crate) fn handle_cache_channel(channel_id: Id<ChannelMarker>, state: State) 
         }
     }
 
-    let response = Response::builder().header("Content-Type", "JSON");
+    let response = Response::builder().header("Content-Type", "application/json");
     if channel.is_none() {
         return response
             .status(404)
@@ -472,7 +472,7 @@ pub(crate) fn handle_cache_user(user_id: Id<UserMarker>, state: State) -> Respon
         }
     }
 
-    let response = Response::builder().header("Content-Type", "JSON");
+    let response = Response::builder().header("Content-Type", "application/json");
     if user.is_none() {
         return response
             .status(404)

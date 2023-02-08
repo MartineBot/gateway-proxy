@@ -380,7 +380,7 @@ fn handle_cache(
     Box::pin(async move {
         let mut response = Response::builder()
             .status(404)
-            .header("Content-Type", "JSON")
+            .header("Content-Type", "application/json")
             .body(Body::from("Unknown cache request"))
             .unwrap();
 
