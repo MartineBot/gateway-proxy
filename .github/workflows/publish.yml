@@ -26,4 +26,5 @@ jobs:
           password: "${{ secrets.GITHUB_TOKEN }}"
           registry: ghcr.io
           image_name: gateway-proxy
-          tags: "latest,${{ github.sha }}"
+          build_extra_args: '{"--build-arg": "TARGET_CPU=skylake"}'
+          tags: "latest,${{ github.sha }},skylake"
