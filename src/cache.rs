@@ -3,10 +3,9 @@ use halfbrown::hashmap;
 use hyper::{Body, Response};
 use serde::Serialize;
 #[cfg(not(feature = "simd-json"))]
-use serde_json::Value as OwnedValue;
-use simd_json::to_string;
+use serde_json::{to_string, Value as OwnedValue};
 #[cfg(feature = "simd-json")]
-use simd_json::OwnedValue;
+use simd_json::{to_string, OwnedValue};
 use twilight_cache_inmemory::{InMemoryCache, InMemoryCacheStats, UpdateCache};
 use twilight_model::{
     channel::{message::Sticker, Channel, ChannelType, StageInstance},
