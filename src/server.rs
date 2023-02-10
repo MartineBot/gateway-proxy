@@ -391,8 +391,9 @@ fn handle_cache(
 
                 for (k, v) in query {
                     if k == "id" {
-                        guild_id =
-                            Some(Id::<GuildMarker>::new(v.to_owned().parse::<u64>().unwrap()));
+                        guild_id = Some(Id::<GuildMarker>::new(
+                            v.to_owned().parse::<u64>().unwrap_or_default(),
+                        ));
                     }
                 }
 
@@ -406,7 +407,7 @@ fn handle_cache(
                 for (k, v) in query {
                     if k == "id" {
                         channel_id = Some(Id::<ChannelMarker>::new(
-                            v.to_owned().parse::<u64>().unwrap(),
+                            v.to_owned().parse::<u64>().unwrap_or_default(),
                         ));
                     }
                 }
@@ -420,7 +421,9 @@ fn handle_cache(
 
                 for (k, v) in query {
                     if k == "id" {
-                        user_id = Some(Id::<UserMarker>::new(v.to_owned().parse::<u64>().unwrap()));
+                        user_id = Some(Id::<UserMarker>::new(
+                            v.to_owned().parse::<u64>().unwrap_or_default(),
+                        ));
                     }
                 }
 
