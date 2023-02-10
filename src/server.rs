@@ -384,13 +384,12 @@ fn handle_cache(
             .body(Body::from("Unknown cache request"))
             .unwrap();
 
+        let query = form_urlencoded::parse(parts.uri.query().unwrap_or_default().as_bytes());
         match parts.uri.path() {
             "/cache/guild" => {
                 let mut guild_id = None;
 
-                for (k, v) in
-                    form_urlencoded::parse(parts.uri.query().unwrap_or_default().as_bytes())
-                {
+                for (k, v) in query {
                     if k == "id" {
                         guild_id =
                             Some(Id::<GuildMarker>::new(v.to_owned().parse::<u64>().unwrap()));
@@ -404,9 +403,7 @@ fn handle_cache(
             "/cache/channel" => {
                 let mut channel_id = None;
 
-                for (k, v) in
-                    form_urlencoded::parse(parts.uri.query().unwrap_or_default().as_bytes())
-                {
+                for (k, v) in query {
                     if k == "id" {
                         channel_id = Some(Id::<ChannelMarker>::new(
                             v.to_owned().parse::<u64>().unwrap(),
@@ -421,9 +418,7 @@ fn handle_cache(
             "/cache/user" => {
                 let mut user_id = None;
 
-                for (k, v) in
-                    form_urlencoded::parse(parts.uri.query().unwrap_or_default().as_bytes())
-                {
+                for (k, v) in query {
                     if k == "id" {
                         user_id = Some(Id::<UserMarker>::new(v.to_owned().parse::<u64>().unwrap()));
                     }
