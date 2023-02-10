@@ -22,7 +22,7 @@ use twilight_model::{
     voice::VoiceState,
 };
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{model::JsonObject, state::State};
 
@@ -411,6 +411,24 @@ impl Guilds {
     }
 }
 
+fn not_found_body(type_name: &str) -> Body {
+    let body = to_string(&HashMap::from([(
+        "message",
+        format!("Unknown {}", type_name),
+    )]))
+    .unwrap();
+    return Body::from(body);
+}
+
+fn serialize_fail_body(type_name: &str) -> Body {
+    let body = to_string(&HashMap::from([(
+        "message",
+        format!("Failed to serialize {}", type_name),
+    )]))
+    .unwrap();
+    return Body::from(body);
+}
+
 pub(crate) fn handle_cache_guild(guild_id: Id<GuildMarker>, state: State) -> Response<Body> {
     let mut guild = None;
     for shard in &state.shards {
@@ -421,10 +439,7 @@ pub(crate) fn handle_cache_guild(guild_id: Id<GuildMarker>, state: State) -> Res
 
     let response = Response::builder().header("Content-Type", "application/json");
     if guild.is_none() {
-        return response
-            .status(404)
-            .body(Body::from("Unknown Guild"))
-            .unwrap();
+        return response.status(404).body(not_found_body("guild")).unwrap();
     }
 
     if let Ok(serialized) = to_string(&guild.unwrap()) {
@@ -432,7 +447,7 @@ pub(crate) fn handle_cache_guild(guild_id: Id<GuildMarker>, state: State) -> Res
     } else {
         return response
             .status(503)
-            .body(Body::from("Failed to serialize guild"))
+            .body(serialize_fail_body("guild"))
             .unwrap();
     }
 }
@@ -449,7 +464,7 @@ pub(crate) fn handle_cache_channel(channel_id: Id<ChannelMarker>, state: State) 
     if channel.is_none() {
         return response
             .status(404)
-            .body(Body::from("Unknown Channel"))
+            .body(not_found_body("channel"))
             .unwrap();
     }
 
@@ -458,7 +473,7 @@ pub(crate) fn handle_cache_channel(channel_id: Id<ChannelMarker>, state: State) 
     } else {
         return response
             .status(503)
-            .body(Body::from("Failed to serialize channel"))
+            .body(serialize_fail_body("channel"))
             .unwrap();
     }
 }
@@ -473,10 +488,7 @@ pub(crate) fn handle_cache_user(user_id: Id<UserMarker>, state: State) -> Respon
 
     let response = Response::builder().header("Content-Type", "application/json");
     if user.is_none() {
-        return response
-            .status(404)
-            .body(Body::from("Unknown User"))
-            .unwrap();
+        return response.status(404).body(not_found_body("user")).unwrap();
     }
 
     if let Ok(serialized) = to_string(&user.unwrap()) {
@@ -484,7 +496,7 @@ pub(crate) fn handle_cache_user(user_id: Id<UserMarker>, state: State) -> Respon
     } else {
         return response
             .status(503)
-            .body(Body::from("Failed to serialize user"))
+            .body(serialize_fail_body("user"))
             .unwrap();
     }
 }
