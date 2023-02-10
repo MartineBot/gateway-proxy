@@ -4,13 +4,19 @@ on:
   push:
     branches: ["martine"]
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: gateway-proxy
-
 jobs:
-  build-and-push-image:
+  build-docker-images:
+    strategy:
+      matrix:
+        target-cpu: ["skylake", "znver3", "znver2", "x86-64"]
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: gateway-proxy
+
     runs-on: ubuntu-latest
+    name: Build for ${{ matrix.target-cpu }}
+
     permissions:
       contents: read
       packages: write
@@ -19,22 +25,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Build and push Docker image - skylake
+      - name: Build and push Docker image - ${{ matrix.target-cpu }}
         uses: whoan/docker-build-with-cache-action@v6
         with:
           username: MartineBot
           password: "${{ secrets.GITHUB_TOKEN }}"
-          registry: ghcr.io
+          registry: "ghcr.io"
           image_name: gateway-proxy
-          build_extra_args: '{"--build-arg": "TARGET_CPU=skylake"}'
-          tags: "latest,${{ github.sha }},skylake"
-
-      - name: Build and push Docker image - znver2
-        uses: whoan/docker-build-with-cache-action@v6
-        with:
-          username: MartineBot
-          password: "${{ secrets.GITHUB_TOKEN }}"
-          registry: ghcr.io
-          image_name: gateway-proxy
-          build_extra_args: '{"--build-arg": "TARGET_CPU=znver2"}'
-          tags: "latest,${{ github.sha }},znver2"
+          build_extra_args: '{"--build-arg": "TARGET_CPU=${{ matrix.target-cpu }}"}'
+          tags: "latest,${{ github.sha }},${{ matrix.target-cpu }}"
