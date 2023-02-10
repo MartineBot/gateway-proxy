@@ -411,7 +411,7 @@ impl Guilds {
     }
 }
 
-fn not_found_body(type_name: &str) -> Body {
+pub fn not_found_body(type_name: &str) -> Body {
     let body = to_string(&HashMap::from([(
         "message",
         format!("Unknown {}", type_name),
@@ -429,7 +429,22 @@ fn serialize_fail_body(type_name: &str) -> Body {
     return Body::from(body);
 }
 
-pub(crate) fn handle_cache_guild(guild_id: Id<GuildMarker>, state: State) -> Response<Body> {
+fn bad_request_body() -> Body {
+    let body = to_string(&HashMap::from([("message", "Bad Request")])).unwrap();
+    return Body::from(body);
+}
+
+pub(crate) fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
+    let response = Response::builder().header("Content-Type", "application/json");
+    let id = match value.parse::<u64>() {
+        Ok(id) => id,
+        Err(_) => return response.status(400).body(bad_request_body()).unwrap(),
+    };
+    if id == 0 {
+        return response.status(400).body(bad_request_body()).unwrap();
+    }
+
+    let guild_id = Id::<GuildMarker>::new(id);
     let mut guild = None;
     for shard in &state.shards {
         if !shard.guilds.cache().guild(guild_id).is_none() {
@@ -437,7 +452,6 @@ pub(crate) fn handle_cache_guild(guild_id: Id<GuildMarker>, state: State) -> Res
         }
     }
 
-    let response = Response::builder().header("Content-Type", "application/json");
     if guild.is_none() {
         return response.status(404).body(not_found_body("guild")).unwrap();
     }
@@ -452,7 +466,17 @@ pub(crate) fn handle_cache_guild(guild_id: Id<GuildMarker>, state: State) -> Res
     }
 }
 
-pub(crate) fn handle_cache_channel(channel_id: Id<ChannelMarker>, state: State) -> Response<Body> {
+pub(crate) fn handle_cache_channel(value: &str, state: State) -> Response<Body> {
+    let response = Response::builder().header("Content-Type", "application/json");
+    let id = match value.parse::<u64>() {
+        Ok(id) => id,
+        Err(_) => return response.status(400).body(bad_request_body()).unwrap(),
+    };
+    if id == 0 {
+        return response.status(400).body(bad_request_body()).unwrap();
+    }
+
+    let channel_id = Id::<ChannelMarker>::new(id);
     let mut channel = None;
     for shard in &state.shards {
         if !shard.guilds.cache().channel(channel_id).is_none() {
@@ -478,7 +502,17 @@ pub(crate) fn handle_cache_channel(channel_id: Id<ChannelMarker>, state: State) 
     }
 }
 
-pub(crate) fn handle_cache_user(user_id: Id<UserMarker>, state: State) -> Response<Body> {
+pub(crate) fn handle_cache_user(value: &str, state: State) -> Response<Body> {
+    let response = Response::builder().header("Content-Type", "application/json");
+    let id = match value.parse::<u64>() {
+        Ok(id) => id,
+        Err(_) => return response.status(400).body(bad_request_body()).unwrap(),
+    };
+    if id == 0 {
+        return response.status(400).body(bad_request_body()).unwrap();
+    }
+
+    let user_id = Id::<UserMarker>::new(id);
     let mut user = None;
     for shard in &state.shards {
         if !shard.guilds.cache().user(user_id).is_none() {

@@ -26,15 +26,11 @@ use tokio_tungstenite::{
 };
 use tracing::{debug, error, info, trace, warn};
 use twilight_gateway::shard::raw_message::Message as TwilightMessage;
-use twilight_model::id::{
-    marker::{ChannelMarker, GuildMarker, UserMarker},
-    Id,
-};
 
 use std::{convert::Infallible, net::SocketAddr, pin::Pin, sync::Arc};
 
 use crate::{
-    cache::{handle_cache_channel, handle_cache_guild, handle_cache_user, Event},
+    cache::{handle_cache_channel, handle_cache_guild, handle_cache_user, Event, not_found_body},
     config::CONFIG,
     deserializer::{GatewayEvent, SequenceInfo},
     model::{Identify, Resume},
@@ -378,61 +374,22 @@ fn handle_cache(
     state: State,
 ) -> Pin<Box<dyn Future<Output = Result<Response<Body>, Infallible>> + Send + 'static>> {
     Box::pin(async move {
-        let mut response = Response::builder()
-            .status(404)
-            .header("Content-Type", "application/json")
-            .body(Body::from("Unknown cache request"))
-            .unwrap();
-
-        let query = form_urlencoded::parse(parts.uri.query().unwrap_or_default().as_bytes());
-        match parts.uri.path() {
-            "/cache/guild" => {
-                let mut guild_id = None;
-
-                for (k, v) in query {
-                    if k == "id" {
-                        guild_id = Some(Id::<GuildMarker>::new(
-                            v.to_owned().parse::<u64>().unwrap_or_default(),
-                        ));
-                    }
-                }
-
-                if let Some(guild_id) = guild_id {
-                    response = handle_cache_guild(guild_id, state.clone());
-                }
-            }
-            "/cache/channel" => {
-                let mut channel_id = None;
-
-                for (k, v) in query {
-                    if k == "id" {
-                        channel_id = Some(Id::<ChannelMarker>::new(
-                            v.to_owned().parse::<u64>().unwrap_or_default(),
-                        ));
-                    }
-                }
-
-                if let Some(channel_id) = channel_id {
-                    response = handle_cache_channel(channel_id, state.clone());
-                }
-            }
-            "/cache/user" => {
-                let mut user_id = None;
-
-                for (k, v) in query {
-                    if k == "id" {
-                        user_id = Some(Id::<UserMarker>::new(
-                            v.to_owned().parse::<u64>().unwrap_or_default(),
-                        ));
-                    }
-                }
-
-                if let Some(user_id) = user_id {
-                    response = handle_cache_user(user_id, state.clone());
-                }
-            }
-            _ => {}
-        }
+        let segments: Vec<&str> = parts
+            .uri
+            .path()
+            .split('/')
+            .filter(|s| !s.is_empty())
+            .collect();
+        let response = match segments[..] {
+            ["cache", "guild", id] => handle_cache_guild(id, state.clone()),
+            ["cache", "channel", id] => handle_cache_channel(id, state.clone()),
+            ["cache", "user", id] => handle_cache_user(id, state.clone()),
+            _ => Response::builder()
+                .status(404)
+                .header("Content-Type", "application/json")
+                .body(not_found_body("cache request"))
+                .unwrap(),
+        };
 
         Ok(response)
     })
