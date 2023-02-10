@@ -33,4 +33,4 @@ jobs:
           registry: "ghcr.io"
           image_name: gateway-proxy
           build_extra_args: '{"--build-arg": "TARGET_CPU=${{ matrix.target-cpu }}"}'
-          tags: "latest,${{ github.sha }},${{ matrix.target-cpu }}"
+          image_tag: "latest,${{ github.sha }},${{ matrix.target-cpu }}"
