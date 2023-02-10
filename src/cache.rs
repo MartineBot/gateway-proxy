@@ -484,7 +484,6 @@ pub(crate) fn handle_cache_channel(value: &str, state: State) -> Response<Body> 
         }
     }
 
-    let response = Response::builder().header("Content-Type", "application/json");
     if channel.is_none() {
         return response
             .status(404)
@@ -520,7 +519,6 @@ pub(crate) fn handle_cache_user(value: &str, state: State) -> Response<Body> {
         }
     }
 
-    let response = Response::builder().header("Content-Type", "application/json");
     if user.is_none() {
         return response.status(404).body(not_found_body("user")).unwrap();
     }
