@@ -9,7 +9,7 @@ ENV RUSTFLAGS "-Lnative=/usr/lib -Z mir-opt-level=3 -C target-cpu=${TARGET_CPU}"
 
 RUN apk upgrade && \
     apk add curl gcc g++ musl-dev cmake make && \
-    curl -sSf https://sh.rustup.rs | sh -s -- --profile minimal --component rust-src --default-toolchain nightly -y
+    curl -sSf https://sh.rustup.rs | sh -s -- --profile minimal --component rust-src --default-toolchain nightly-2022-09-22 -y
 
 WORKDIR /build
 
