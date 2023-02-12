@@ -2,7 +2,7 @@ use itoa::Buffer;
 #[cfg(feature = "simd-json")]
 use simd_json::Mutable;
 use tokio::{sync::broadcast, time::Instant};
-use tracing::{debug, trace};
+use tracing::{debug, trace, info};
 use twilight_gateway::{parse, ConnectionStatus, Event, EventTypeFlags, Message, Shard};
 use twilight_model::gateway::event::GatewayEvent as TwilightGatewayEvent;
 
@@ -100,6 +100,7 @@ pub async fn events(
                     // since this data is timeless
                     shard_state.ready.set_ready(ready.d);
                     is_ready = true;
+                    info!("[Shard {shard_id}] Ready!");
                 } else if event_name == "RESUMED" {
                     is_ready = true;
                 } else if op.0 == 0 {
