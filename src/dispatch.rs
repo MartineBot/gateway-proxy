@@ -91,10 +91,10 @@ pub async fn events(
                     }
 
                     // Override resume_gateway_url with the external URI of the proxy
-                    ready.d.insert(
-                        String::from("resume_gateway_url"),
-                        CONFIG.externally_accessible_url.clone().into(),
-                    );
+                    // ready.d.insert(
+                    //     String::from("resume_gateway_url"),
+                    //     CONFIG.externally_accessible_url.clone().into(),
+                    // );
 
                     // We don't care if it was already set
                     // since this data is timeless
