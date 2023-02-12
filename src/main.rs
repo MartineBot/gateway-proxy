@@ -159,7 +159,7 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
         sessions: RwLock::new(HashMap::new()),
     });
 
-    if let Err(e) = server::run(CONFIG.port, state, metrics_handle).await {
+    if let Err(e) = server::run(CONFIG.port, state, metrics_handle, client.clone()).await {
         error!("{}", e);
     };
 

@@ -274,6 +274,7 @@ dependencies = [
  "twilight-gateway-queue",
  "twilight-http",
  "twilight-model",
+ "twilight-util",
 ]
 
 [[package]]
@@ -1293,6 +1294,15 @@ dependencies = [
  "serde_repr",
  "time",
  "tracing",
+]
+
+[[package]]
+name = "twilight-util"
+version = "0.11.1"
+source = "git+https://github.com/PredaaA/twilight.git?branch=custom-new#672abf04ed3a9cef5b10849b313f97e92d59afca"
+dependencies = [
+ "twilight-model",
+ "twilight-validate",
 ]
 
 [[package]]

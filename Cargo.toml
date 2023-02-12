@@ -48,6 +48,7 @@ twilight-http = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "c
     "rustls-webpki-roots",
 ] }
 twilight-model = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "custom-new" }
+twilight-util = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new", features = [ "builder", "link" ] }
 
 [patch.'https://github.com/Gelbpunkt/twilight.git']
 twilight-cache-inmemory = { git = "https://github.com/PredaaA/twilight.git", branch = "custom-new" }
