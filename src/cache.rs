@@ -8,7 +8,7 @@ use serde_json::{to_string, Value as OwnedValue};
 use simd_json::{to_string, OwnedValue};
 use twilight_cache_inmemory::{InMemoryCache, InMemoryCacheStats, UpdateCache};
 use twilight_model::{
-    channel::{message::Sticker, Channel, ChannelType, StageInstance},
+    channel::{message::Sticker, Channel, StageInstance},
     gateway::{
         payload::incoming::{GuildCreate, GuildDelete},
         presence::{Presence, UserOrId},
@@ -94,7 +94,7 @@ impl Guilds {
 
         Payload {
             d: Event::Ready(ready),
-            op: OpCode::Event,
+            op: OpCode::Dispatch,
             t: String::from("READY"),
             s: *sequence,
         }
@@ -109,12 +109,7 @@ impl Guilds {
                     .filter_map(|channel_id| {
                         let channel = self.0.channel(*channel_id)?;
 
-                        if matches!(
-                            channel.kind,
-                            ChannelType::GuildNewsThread
-                                | ChannelType::GuildPrivateThread
-                                | ChannelType::GuildPublicThread
-                        ) {
+                        if channel.kind.is_thread() {
                             None
                         } else {
                             Some(channel.value().clone())
@@ -183,7 +178,7 @@ impl Guilds {
             avatar: member.avatar(),
             communication_disabled_until: member.communication_disabled_until(),
             deaf: member.deaf().unwrap_or_default(),
-            guild_id: member.guild_id(),
+            flags: member.flags(),
             joined_at: member.joined_at(),
             mute: member.mute().unwrap_or_default(),
             nick: member.nick().map(ToString::to_string),
@@ -283,7 +278,6 @@ impl Guilds {
                             self_video: voice_state.self_video(),
                             session_id: voice_state.session_id().to_string(),
                             suppress: voice_state.suppress(),
-                            token: voice_state.token().map(ToString::to_string),
                             user_id: voice_state.user_id(),
                             request_to_speak_timestamp: voice_state.request_to_speak_timestamp(),
                         })
@@ -302,12 +296,7 @@ impl Guilds {
                     .filter_map(|channel_id| {
                         let channel = self.0.channel(*channel_id)?;
 
-                        if matches!(
-                            channel.kind,
-                            ChannelType::GuildNewsThread
-                                | ChannelType::GuildPrivateThread
-                                | ChannelType::GuildPublicThread
-                        ) {
+                        if channel.kind.is_thread() {
                             Some(channel.value().clone())
                         } else {
                             None
@@ -333,7 +322,7 @@ impl Guilds {
 
                 Payload {
                     d: Event::GuildDelete(guild_delete),
-                    op: OpCode::Event,
+                    op: OpCode::Dispatch,
                     t: String::from("GUILD_DELETE"),
                     s: *sequence,
                 }
@@ -377,6 +366,7 @@ impl Guilds {
                     owner_id: guild.owner_id(),
                     owner: guild.owner(),
                     permissions: guild.permissions(),
+                    public_updates_channel_id: guild.public_updates_channel_id(),
                     preferred_locale: guild.preferred_locale().to_string(),
                     premium_progress_bar_enabled: guild.premium_progress_bar_enabled(),
                     premium_subscription_count: guild.premium_subscription_count(),
@@ -402,7 +392,7 @@ impl Guilds {
 
                 Payload {
                     d: Event::GuildCreate(Box::new(guild_create)),
-                    op: OpCode::Event,
+                    op: OpCode::Dispatch,
                     t: String::from("GUILD_CREATE"),
                     s: *sequence,
                 }
