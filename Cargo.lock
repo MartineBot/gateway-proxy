@@ -950,9 +950,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.92"
+version = "1.0.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7434af0dc1cbd59268aa98b4c22c131c0584d2232f6fb166efb993e2832e896a"
+checksum = "cad406b69c91885b5107daf2c29572f6c8cdb3c66826821e286c533490c0bc76"
 dependencies = [
  "itoa",
  "ryu",
@@ -1086,11 +1086,10 @@ dependencies = [
 
 [[package]]
 name = "thread_local"
-version = "1.1.6"
+version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50f297120ff9d4efe680df143d5631bba9c75fa371992b7fcb33eb3453cb0a07"
+checksum = "5516c27b78311c50bf42c071425c560ac799b11c30b31f87e3081965fe5e0180"
 dependencies = [
- "cfg-if",
  "once_cell",
 ]
 
@@ -1181,9 +1180,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.5"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e267c18a719545b481171952a79f8c25c80361463ba44bc7fa9eba7c742ef4f"
+checksum = "bc6a3b08b64e6dfad376fa2432c7b1f01522e37a623c3050bc95db2d3ff21583"
 dependencies = [
  "bytes",
  "futures-core",
@@ -1644,28 +1643,3 @@ name = "windows_x86_64_msvc"
 version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "447660ad36a13288b1db4d4248e857b510e8c3a225c822ba4fb748c0aafecffd"
-
-[[patch.unused]]
-name = "twilight-cache-inmemory"
-version = "0.11.1"
-source = "git+https://github.com/PredaaA/twilight.git?branch=custom-new#672abf04ed3a9cef5b10849b313f97e92d59afca"
-
-[[patch.unused]]
-name = "twilight-gateway"
-version = "0.11.1"
-source = "git+https://github.com/PredaaA/twilight.git?branch=custom-new#672abf04ed3a9cef5b10849b313f97e92d59afca"
-
-[[patch.unused]]
-name = "twilight-gateway-queue"
-version = "0.11.1"
-source = "git+https://github.com/PredaaA/twilight.git?branch=custom-new#672abf04ed3a9cef5b10849b313f97e92d59afca"
-
-[[patch.unused]]
-name = "twilight-http"
-version = "0.11.1"
-source = "git+https://github.com/PredaaA/twilight.git?branch=custom-new#672abf04ed3a9cef5b10849b313f97e92d59afca"
-
-[[patch.unused]]
-name = "twilight-model"
-version = "0.11.1"
-source = "git+https://github.com/PredaaA/twilight.git?branch=custom-new#672abf04ed3a9cef5b10849b313f97e92d59afca"
