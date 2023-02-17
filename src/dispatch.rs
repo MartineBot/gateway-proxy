@@ -119,7 +119,7 @@ pub async fn events(
                         shard_state.guilds.update(Event::from(event))
                     }
                     TwilightGatewayEvent::InvalidateSession(can_resume) => {
-                        debug!("[Shard {shard_id}] Session invalidated, resumable: {can_resume}");
+                        info!("[Shard {shard_id}] Session invalidated, resumable: {can_resume}");
                         if !can_resume {
                             // We can only reset the READY state if we know that we will get a new READY,
                             // which is the case if we can not resume.
