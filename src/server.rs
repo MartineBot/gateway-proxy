@@ -78,7 +78,7 @@ async fn sink_from_queue<S>(
     mut sink: S,
 ) -> Result<(), Error>
 where
-    S: Sink<Message, Error = Error> + Unpin,
+    S: Sink<Message, Error = Error> + Unpin + Send,
 {
     // Initialize a zlib encoder with similar settings to Discord's
     let mut compress = Compress::new(Compression::fast(), true);
@@ -94,7 +94,7 @@ where
         sink.send(Message::Text(HELLO.to_string())).await?;
     }
 
-    if compress_rx.await.contains(&Some(true)) {
+    if compress_rx.await != Ok(Some(true)) {
         use_zlib = true;
     }
 
@@ -180,6 +180,7 @@ async fn forward_shard(
     }
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn handle_client<S: 'static + AsyncRead + AsyncWrite + Unpin + Send>(
     addr: SocketAddr,
     stream: S,
