@@ -424,7 +424,7 @@ fn bad_request_body() -> Body {
     Body::from(body)
 }
 
-pub(crate) fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
+pub fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
     let id = match value.parse::<u64>() {
         Ok(id) => id,
@@ -456,7 +456,7 @@ pub(crate) fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
         .unwrap();
 }
 
-pub(crate) fn handle_cache_channel(value: &str, state: State) -> Response<Body> {
+pub fn handle_cache_channel(value: &str, state: State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
     let id = match value.parse::<u64>() {
         Ok(id) => id,
@@ -491,7 +491,7 @@ pub(crate) fn handle_cache_channel(value: &str, state: State) -> Response<Body> 
         .unwrap();
 }
 
-pub(crate) fn handle_cache_user(value: &str, state: State) -> Response<Body> {
+pub fn handle_cache_user(value: &str, state: State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
     let id = match value.parse::<u64>() {
         Ok(id) => id,
