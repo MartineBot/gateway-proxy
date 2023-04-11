@@ -404,7 +404,7 @@ impl Guilds {
 pub fn not_found_body(type_name: &str) -> Body {
     let body = to_string(&HashMap::from([(
         "message",
-        format!("Unknown {}", type_name),
+        format!("Unknown {type_name}"),
     )]))
     .unwrap();
     Body::from(body)
@@ -413,7 +413,7 @@ pub fn not_found_body(type_name: &str) -> Body {
 fn serialize_fail_body(type_name: &str) -> Body {
     let body = to_string(&HashMap::from([(
         "message",
-        format!("Failed to serialize {}", type_name),
+        format!("Failed to serialize {type_name}"),
     )]))
     .unwrap();
     Body::from(body)
