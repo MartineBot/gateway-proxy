@@ -407,7 +407,7 @@ pub fn not_found_body(type_name: &str) -> Body {
         format!("Unknown {}", type_name),
     )]))
     .unwrap();
-    return Body::from(body);
+    Body::from(body)
 }
 
 fn serialize_fail_body(type_name: &str) -> Body {
@@ -416,12 +416,12 @@ fn serialize_fail_body(type_name: &str) -> Body {
         format!("Failed to serialize {}", type_name),
     )]))
     .unwrap();
-    return Body::from(body);
+    Body::from(body)
 }
 
 fn bad_request_body() -> Body {
     let body = to_string(&HashMap::from([("message", "Bad Request")])).unwrap();
-    return Body::from(body);
+    Body::from(body)
 }
 
 pub(crate) fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
