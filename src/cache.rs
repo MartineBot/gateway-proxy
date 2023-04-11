@@ -448,12 +448,12 @@ pub(crate) fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
 
     if let Ok(serialized) = to_string(&guild.unwrap()) {
         return response.body(Body::from(serialized)).unwrap();
-    } else {
-        return response
-            .status(503)
-            .body(serialize_fail_body("guild"))
-            .unwrap();
     }
+
+    return response
+        .status(503)
+        .body(serialize_fail_body("guild"))
+        .unwrap();
 }
 
 pub(crate) fn handle_cache_channel(value: &str, state: State) -> Response<Body> {
@@ -483,12 +483,12 @@ pub(crate) fn handle_cache_channel(value: &str, state: State) -> Response<Body> 
 
     if let Ok(serialized) = to_string(&channel.unwrap()) {
         return response.body(Body::from(serialized)).unwrap();
-    } else {
-        return response
-            .status(503)
-            .body(serialize_fail_body("channel"))
-            .unwrap();
     }
+
+    return response
+        .status(503)
+        .body(serialize_fail_body("channel"))
+        .unwrap();
 }
 
 pub(crate) fn handle_cache_user(value: &str, state: State) -> Response<Body> {
@@ -515,10 +515,10 @@ pub(crate) fn handle_cache_user(value: &str, state: State) -> Response<Body> {
 
     if let Ok(serialized) = to_string(&user.unwrap()) {
         return response.body(Body::from(serialized)).unwrap();
-    } else {
-        return response
-            .status(503)
-            .body(serialize_fail_body("user"))
-            .unwrap();
     }
+
+    return response
+        .status(503)
+        .body(serialize_fail_body("user"))
+        .unwrap();
 }
