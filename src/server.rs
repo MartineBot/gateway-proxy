@@ -375,9 +375,9 @@ fn handle_cache(
             .filter(|s| !s.is_empty())
             .collect();
         let response = match segments[..] {
-            ["cache", "guild", id] => handle_cache_guild(id, state.clone()),
-            ["cache", "channel", id] => handle_cache_channel(id, state.clone()),
-            ["cache", "user", id] => handle_cache_user(id, state.clone()),
+            ["cache", "guild", id] => handle_cache_guild(id, &state.clone()),
+            ["cache", "channel", id] => handle_cache_channel(id, &state.clone()),
+            ["cache", "user", id] => handle_cache_user(id, &state.clone()),
             _ => Response::builder()
                 .status(404)
                 .header("Content-Type", "application/json")
