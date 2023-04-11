@@ -424,12 +424,9 @@ fn bad_request_body() -> Body {
     Body::from(body)
 }
 
-pub fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
+pub fn handle_cache_guild(value: &str, state: &State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
-    let id = match value.parse::<u64>() {
-        Ok(id) => id,
-        Err(_) => return response.status(400).body(bad_request_body()).unwrap(),
-    };
+    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
     if id == 0 {
         return response.status(400).body(bad_request_body()).unwrap();
     }
@@ -437,7 +434,7 @@ pub fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
     let guild_id = Id::<GuildMarker>::new(id);
     let mut guild = None;
     for shard in &state.shards {
-        if !shard.guilds.cache().guild(guild_id).is_none() {
+        if shard.guilds.cache().guild(guild_id).is_some() {
             guild = Some(shard.guilds.cache().guild(guild_id).unwrap().clone());
         }
     }
@@ -450,18 +447,15 @@ pub fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
         return response.body(Body::from(serialized)).unwrap();
     }
 
-    return response
+    response
         .status(503)
         .body(serialize_fail_body("guild"))
-        .unwrap();
+        .unwrap()
 }
 
-pub fn handle_cache_channel(value: &str, state: State) -> Response<Body> {
+pub fn handle_cache_channel(value: &str, state: &State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
-    let id = match value.parse::<u64>() {
-        Ok(id) => id,
-        Err(_) => return response.status(400).body(bad_request_body()).unwrap(),
-    };
+    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
     if id == 0 {
         return response.status(400).body(bad_request_body()).unwrap();
     }
@@ -469,7 +463,7 @@ pub fn handle_cache_channel(value: &str, state: State) -> Response<Body> {
     let channel_id = Id::<ChannelMarker>::new(id);
     let mut channel = None;
     for shard in &state.shards {
-        if !shard.guilds.cache().channel(channel_id).is_none() {
+        if shard.guilds.cache().channel(channel_id).is_some() {
             channel = Some(shard.guilds.cache().channel(channel_id).unwrap().clone());
         }
     }
@@ -485,18 +479,15 @@ pub fn handle_cache_channel(value: &str, state: State) -> Response<Body> {
         return response.body(Body::from(serialized)).unwrap();
     }
 
-    return response
+    response
         .status(503)
         .body(serialize_fail_body("channel"))
-        .unwrap();
+        .unwrap()
 }
 
-pub fn handle_cache_user(value: &str, state: State) -> Response<Body> {
+pub fn handle_cache_user(value: &str, state: &State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
-    let id = match value.parse::<u64>() {
-        Ok(id) => id,
-        Err(_) => return response.status(400).body(bad_request_body()).unwrap(),
-    };
+    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
     if id == 0 {
         return response.status(400).body(bad_request_body()).unwrap();
     }
@@ -504,7 +495,7 @@ pub fn handle_cache_user(value: &str, state: State) -> Response<Body> {
     let user_id = Id::<UserMarker>::new(id);
     let mut user = None;
     for shard in &state.shards {
-        if !shard.guilds.cache().user(user_id).is_none() {
+        if shard.guilds.cache().user(user_id).is_some() {
             user = Some(shard.guilds.cache().user(user_id).unwrap().clone());
         }
     }
@@ -517,8 +508,8 @@ pub fn handle_cache_user(value: &str, state: State) -> Response<Body> {
         return response.body(Body::from(serialized)).unwrap();
     }
 
-    return response
+    response
         .status(503)
         .body(serialize_fail_body("user"))
-        .unwrap();
+        .unwrap()
 }

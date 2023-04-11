@@ -2,7 +2,7 @@ use itoa::Buffer;
 #[cfg(feature = "simd-json")]
 use simd_json::Mutable;
 use tokio::{sync::broadcast, time::Instant};
-use tracing::{debug, trace, info};
+use tracing::{trace, info};
 use twilight_gateway::{parse, ConnectionStatus, Event, EventTypeFlags, Message, Shard};
 use twilight_model::gateway::event::GatewayEvent as TwilightGatewayEvent;
 
