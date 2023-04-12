@@ -34,6 +34,8 @@ pub struct Config {
     pub activity: Option<Activity>,
     #[serde(default = "default_status")]
     pub status: Status,
+    #[serde(default)]
+    pub support_guild_id: Option<u64>,
     #[serde(default = "default_backpressure")]
     pub backpressure: usize,
     #[serde(default)]

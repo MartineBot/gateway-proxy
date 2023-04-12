@@ -29,7 +29,7 @@ use tracing::{debug, error, info, trace, warn};
 use std::{convert::Infallible, net::SocketAddr, pin::Pin, sync::Arc};
 
 use crate::{
-    cache::{handle_cache_channel, handle_cache_guild, handle_cache_user, not_found_body, Event},
+    cache::{handle_cache_channel, handle_cache_guild, handle_cache_user, not_found_body, Event, handle_cache_isbotuser},
     config::CONFIG,
     deserializer::{GatewayEvent, SequenceInfo},
     model::{Identify, Resume},
@@ -378,6 +378,7 @@ fn handle_cache(
             ["cache", "guild", id] => handle_cache_guild(id, &state.clone()),
             ["cache", "channel", id] => handle_cache_channel(id, &state.clone()),
             ["cache", "user", id] => handle_cache_user(id, &state.clone()),
+            ["cache", "is_botuser", id] => handle_cache_isbotuser(id, &state.clone()),
             _ => Response::builder()
                 .status(404)
                 .header("Content-Type", "application/json")

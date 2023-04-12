@@ -24,7 +24,7 @@ use twilight_model::{
 
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{model::JsonObject, state::State};
+use crate::{config::CONFIG, model::JsonObject, state::State};
 
 #[derive(Serialize)]
 pub struct Payload {
@@ -511,5 +511,38 @@ pub fn handle_cache_user(value: &str, state: &State) -> Response<Body> {
     response
         .status(503)
         .body(serialize_fail_body("user"))
+        .unwrap()
+}
+
+pub fn handle_cache_isbotuser(value: &str, state: &State) -> Response<Body> {
+    let response = Response::builder().header("Content-Type", "application/json");
+    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
+    if id == 0 || CONFIG.support_guild_id.is_none() {
+        return response.status(400).body(bad_request_body()).unwrap();
+    }
+
+    let user_id = Id::<UserMarker>::new(id);
+    let support_guild_id = Id::<GuildMarker>::new(CONFIG.support_guild_id.unwrap());
+    let mut found = false;
+    for shard in &state.shards {
+        if shard.guilds.cache().user(user_id).is_some() {
+            shard
+                .guilds
+                .cache()
+                .user_guilds(user_id)
+                .unwrap()
+                .iter()
+                .for_each(|guild| {
+                    if guild.get() != support_guild_id {
+                        found = true;
+                    }
+                });
+        }
+    }
+
+    response
+        .body(Body::from(
+            to_string(&HashMap::from([("found", found)])).unwrap(),
+        ))
         .unwrap()
 }
