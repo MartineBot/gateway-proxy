@@ -29,7 +29,10 @@ use tracing::{debug, error, info, trace, warn};
 use std::{convert::Infallible, net::SocketAddr, pin::Pin, sync::Arc};
 
 use crate::{
-    cache::{handle_cache_channel, handle_cache_guild, handle_cache_user, not_found_body, Event, handle_cache_isbotuser},
+    cache::{
+        handle_cache_channel, handle_cache_guild, handle_cache_isbotuser, handle_cache_user,
+        not_found_body, Event,
+    },
     config::CONFIG,
     deserializer::{GatewayEvent, SequenceInfo},
     model::{Identify, Resume},
