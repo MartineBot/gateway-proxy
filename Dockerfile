@@ -5,10 +5,10 @@ ARG TARGET_CPU="haswell"
 FROM docker.io/library/alpine:edge AS builder
 ARG TARGET_CPU
 ENV RUST_TARGET "x86_64-unknown-linux-musl"
-ENV RUSTFLAGS "-Lnative=/usr/lib -C target-cpu=${TARGET_CPU} link-args=-lc"
+ENV RUSTFLAGS "-Lnative=/usr/lib -C target-cpu=${TARGET_CPU}"
 
 RUN apk upgrade && \
-    apk add curl gcc g++ musl-dev cmake make && \
+    apk add curl build-base g++ cmake make && \
     curl -sSf https://sh.rustup.rs | sh -s -- --profile minimal --component rust-src --default-toolchain nightly -y
 
 WORKDIR /build
