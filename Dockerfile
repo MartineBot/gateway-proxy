@@ -37,8 +37,12 @@ RUN source $HOME/.cargo/env && \
     cp target/$RUST_TARGET/release/gateway-proxy /gateway-proxy && \
     strip /gateway-proxy
 
-FROM scratch
+FROM docker.io/library/alpine:edge
 
 COPY --from=builder /gateway-proxy /gateway-proxy
+
+RUN apk upgrade && apk add curl
+
+HEALTHCHECK --interval=5s CMD curl --fail http://0.0.0.0:5421/health || exit 1
 
 CMD ["./gateway-proxy"]

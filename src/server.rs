@@ -393,6 +393,28 @@ fn handle_cache(
     })
 }
 
+fn get_health(state: &State) -> Response<Body> {
+    let response = Response::builder();
+    for shard in &state.shards {
+        if !shard.ready.is_ready() {
+            return response.status(400).body(Body::from("Not ready!")).unwrap();
+        }
+    }
+
+    response
+        .status(200)
+        .body(Body::from("OK".to_string()))
+        .unwrap()
+}
+
+fn handle_health_req(
+    state: State,
+) -> Pin<Box<dyn Future<Output = Result<Response<Body>, Infallible>> + Send + 'static>> {
+    Box::pin(async move {
+        Ok(get_health(&state.clone()))
+    })
+}
+
 pub async fn run(
     port: u16,
     state: State,
@@ -414,6 +436,8 @@ pub async fn run(
                     handle_metrics(metrics_handle.clone())
                 } else if incoming.uri().path().starts_with("/cache") {
                     handle_cache(incoming.into_parts().0, state.clone())
+                } else if incoming.uri().path() == "/health" {
+                    handle_health_req(state.clone())
                 } else {
                     // On anything else just provide the websocket server
                     Box::pin(upgrade::server(addr, incoming, state.clone()))
