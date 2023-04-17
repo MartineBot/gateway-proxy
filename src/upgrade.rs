@@ -1,4 +1,4 @@
-use base64::encode;
+use base64::{engine::general_purpose::STANDARD, Engine};
 use hyper::{
     header::{
         HeaderValue, CONNECTION, SEC_WEBSOCKET_ACCEPT, SEC_WEBSOCKET_KEY, SEC_WEBSOCKET_VERSION,
@@ -37,12 +37,7 @@ pub async fn server(
 
     let mut response = Response::new(Body::empty());
 
-    if !request
-        .headers()
-        .get(UPGRADE)
-        .and_then(|v| v.to_str().ok())
-        .contains(&"websocket")
-    {
+    if request.headers().get(UPGRADE).and_then(|v| v.to_str().ok()) != Some("websocket") {
         *response.status_mut() = StatusCode::BAD_REQUEST;
         return Ok(response);
     }
@@ -51,7 +46,7 @@ pub async fn server(
         let mut ctx = digest::Context::new(&digest::SHA1_FOR_LEGACY_USE_ONLY);
         ctx.update(websocket_key.as_bytes());
         ctx.update(GUID.as_bytes());
-        let accept_key = encode(ctx.finish().as_ref());
+        let accept_key = STANDARD.encode(ctx.finish().as_ref());
 
         // Spawn a task that waits for the upgrade to finish to
         // get access to the underlying connection

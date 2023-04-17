@@ -2,7 +2,7 @@ use itoa::Buffer;
 #[cfg(feature = "simd-json")]
 use simd_json::Mutable;
 use tokio::{sync::broadcast, time::Instant};
-use tracing::{debug, trace};
+use tracing::{info, trace};
 use twilight_gateway::{parse, ConnectionStatus, Event, EventTypeFlags, Message, Shard};
 use twilight_model::gateway::event::GatewayEvent as TwilightGatewayEvent;
 
@@ -22,7 +22,7 @@ const TEN_SECONDS: Duration = Duration::from_secs(10);
 pub async fn events(
     mut shard: Shard,
     shard_state: Arc<ShardState>,
-    shard_id: u64,
+    shard_id: u32,
     broadcast_tx: broadcast::Sender<BroadcastMessage>,
 ) {
     // This method only wants to relay events while the shard is in a READY state
@@ -91,39 +91,46 @@ pub async fn events(
                     }
 
                     // Override resume_gateway_url with the external URI of the proxy
-                    ready.d.insert(
-                        String::from("resume_gateway_url"),
-                        CONFIG.externally_accessible_url.clone().into(),
-                    );
+                    // ready.d.insert(
+                    //     String::from("resume_gateway_url"),
+                    //     CONFIG.externally_accessible_url.clone().into(),
+                    // );
 
                     // We don't care if it was already set
                     // since this data is timeless
                     shard_state.ready.set_ready(ready.d);
                     is_ready = true;
+                    info!("[Shard {shard_id}] Ready!");
                 } else if event_name == "RESUMED" {
                     is_ready = true;
-                } else if op.0 == 0 {
+                } else if op.0 == 0 && is_ready {
                     // We only want to relay dispatchable events, not RESUMEs and not READY
                     // because we fake a READY event
                     let payload_copy = payload.clone();
                     trace!("[Shard {shard_id}] Sending payload to clients: {payload_copy:?}",);
 
-                    if is_ready {
-                        let _res = broadcast_tx.send((payload_copy, sequence));
-                    }
+                    let _res = broadcast_tx.send((payload_copy, sequence));
                 }
             }
 
-            // Parse the event
-            if let Ok(Some(TwilightGatewayEvent::Dispatch(_, event))) =
-                parse(payload, event_type_flags)
-            {
-                shard_state.guilds.update(Event::from(event));
+            if let Ok(Some(event)) = parse(payload, event_type_flags) {
+                match event {
+                    TwilightGatewayEvent::Dispatch(_, event) => {
+                        shard_state.guilds.update(Event::from(event));
+                    }
+                    TwilightGatewayEvent::InvalidateSession(can_resume) => {
+                        info!("[Shard {shard_id}] Session invalidated, resumable: {can_resume}");
+                        if !can_resume {
+                            // We can only reset the READY state if we know that we will get a new READY,
+                            // which is the case if we can not resume.
+                            shard_state.ready.set_not_ready();
+                        }
+                        // Suspend sending events to clients until READY or RESUMED are received.
+                        is_ready = false;
+                    }
+                    _ => {}
+                }
             }
-        } else if let Message::Close(_) = msg {
-            debug!("[Shard {shard_id}] Reconnecting");
-            shard_state.ready.set_not_ready();
-            is_ready = false;
         }
     }
 }

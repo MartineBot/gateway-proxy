@@ -8,8 +8,8 @@ ENV RUST_TARGET "x86_64-unknown-linux-musl"
 ENV RUSTFLAGS "-Lnative=/usr/lib -C target-cpu=${TARGET_CPU}"
 
 RUN apk upgrade && \
-    apk add curl gcc g++ musl-dev cmake make && \
-    curl -sSf https://sh.rustup.rs | sh -s -- --profile minimal --component rust-src --default-toolchain nightly-2022-09-22 -y
+    apk add curl build-base g++ cmake make && \
+    curl -sSf https://sh.rustup.rs | sh -s -- --profile minimal --component rust-src --default-toolchain nightly -y
 
 WORKDIR /build
 
@@ -37,8 +37,12 @@ RUN source $HOME/.cargo/env && \
     cp target/$RUST_TARGET/release/gateway-proxy /gateway-proxy && \
     strip /gateway-proxy
 
-FROM scratch
+FROM docker.io/library/alpine:edge
 
 COPY --from=builder /gateway-proxy /gateway-proxy
+
+RUN apk upgrade && apk add curl
+
+HEALTHCHECK --interval=5s CMD curl --fail http://0.0.0.0:5421/health || exit 1
 
 CMD ["./gateway-proxy"]

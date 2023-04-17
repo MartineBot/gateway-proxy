@@ -32,7 +32,10 @@ use twilight_util::{builder::embed::EmbedBuilder, link::webhook as webhook_link}
 use std::{convert::Infallible, net::SocketAddr, pin::Pin, sync::Arc};
 
 use crate::{
-    cache::{handle_cache_channel, handle_cache_guild, handle_cache_user, not_found_body, Event},
+    cache::{
+        handle_cache_channel, handle_cache_guild, handle_cache_isbotuser, handle_cache_user,
+        not_found_body, Event,
+    },
     config::CONFIG,
     deserializer::{GatewayEvent, SequenceInfo},
     model::{Identify, Resume},
@@ -81,7 +84,7 @@ async fn sink_from_queue<S>(
     mut sink: S,
 ) -> Result<(), Error>
 where
-    S: Sink<Message, Error = Error> + Unpin,
+    S: Sink<Message, Error = Error> + Unpin + Send,
 {
     // Initialize a zlib encoder with similar settings to Discord's
     let mut compress = Compress::new(Compression::fast(), true);
@@ -97,7 +100,7 @@ where
         sink.send(Message::Text(HELLO.to_string())).await?;
     }
 
-    if compress_rx.await.contains(&Some(true)) {
+    if compress_rx.await != Ok(Some(true)) {
         use_zlib = true;
     }
 
@@ -183,6 +186,7 @@ async fn forward_shard(
     }
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn handle_client<S: 'static + AsyncRead + AsyncWrite + Unpin + Send>(
     addr: SocketAddr,
     stream: S,
@@ -377,9 +381,10 @@ fn handle_cache(
             .filter(|s| !s.is_empty())
             .collect();
         let response = match segments[..] {
-            ["cache", "guild", id] => handle_cache_guild(id, state.clone()),
-            ["cache", "channel", id] => handle_cache_channel(id, state.clone()),
-            ["cache", "user", id] => handle_cache_user(id, state.clone()),
+            ["cache", "guild", id] => handle_cache_guild(id, &state.clone()),
+            ["cache", "channel", id] => handle_cache_channel(id, &state.clone()),
+            ["cache", "user", id] => handle_cache_user(id, &state.clone()),
+            ["cache", "is_botuser", id] => handle_cache_isbotuser(id, &state.clone()),
             _ => Response::builder()
                 .status(404)
                 .header("Content-Type", "application/json")
@@ -389,6 +394,26 @@ fn handle_cache(
 
         Ok(response)
     })
+}
+
+fn get_health(state: &State) -> Response<Body> {
+    let response = Response::builder();
+    for shard in &state.shards {
+        if !shard.ready.is_ready() {
+            return response.status(400).body(Body::from("Not ready!")).unwrap();
+        }
+    }
+
+    response
+        .status(200)
+        .body(Body::from("OK".to_string()))
+        .unwrap()
+}
+
+fn handle_health_req(
+    state: State,
+) -> Pin<Box<dyn Future<Output = Result<Response<Body>, Infallible>> + Send + 'static>> {
+    Box::pin(async move { Ok(get_health(&state.clone())) })
 }
 
 pub async fn run(
@@ -413,6 +438,8 @@ pub async fn run(
                     handle_metrics(metrics_handle.clone())
                 } else if incoming.uri().path().starts_with("/cache") {
                     handle_cache(incoming.into_parts().0, state.clone())
+                } else if incoming.uri().path() == "/health" {
+                    handle_health_req(state.clone())
                 } else {
                     // On anything else just provide the websocket server
                     Box::pin(upgrade::server(addr, incoming, state.clone()))

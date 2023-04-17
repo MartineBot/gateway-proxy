@@ -27,15 +27,17 @@ pub struct Config {
     #[serde(default)]
     pub webhook_url: Option<String>,
     #[serde(default)]
-    pub shards: Option<u64>,
+    pub shards: Option<u32>,
     #[serde(default)]
-    pub shard_start: Option<u64>,
+    pub shard_start: Option<u32>,
     #[serde(default)]
-    pub shard_end: Option<u64>,
+    pub shard_end: Option<u32>,
     #[serde(default)]
     pub activity: Option<Activity>,
     #[serde(default = "default_status")]
     pub status: Status,
+    #[serde(default)]
+    pub support_guild_id: Option<u64>,
     #[serde(default = "default_backpressure")]
     pub backpressure: usize,
     #[serde(default)]
@@ -77,54 +79,51 @@ impl Default for Cache {
 }
 
 impl From<Cache> for EventTypeFlags {
-    fn from(cache: Cache) -> EventTypeFlags {
-        let mut flags = EventTypeFlags::GUILD_CREATE
-            | EventTypeFlags::GUILD_DELETE
-            | EventTypeFlags::GUILD_UPDATE
-            | EventTypeFlags::READY;
+    fn from(cache: Cache) -> Self {
+        let mut flags = Self::GUILD_CREATE
+            | Self::GUILD_DELETE
+            | Self::GUILD_UPDATE
+            | Self::READY
+            | Self::GATEWAY_INVALIDATE_SESSION;
 
         if cache.members || cache.current_member {
-            flags |= EventTypeFlags::MEMBER_ADD
-                | EventTypeFlags::MEMBER_REMOVE
-                | EventTypeFlags::MEMBER_UPDATE;
+            flags |= Self::MEMBER_ADD | Self::MEMBER_REMOVE | Self::MEMBER_UPDATE;
         }
 
         if cache.roles {
-            flags |= EventTypeFlags::ROLE_CREATE
-                | EventTypeFlags::ROLE_DELETE
-                | EventTypeFlags::ROLE_UPDATE;
+            flags |= Self::ROLE_CREATE | Self::ROLE_DELETE | Self::ROLE_UPDATE;
         }
 
         if cache.channels {
-            flags |= EventTypeFlags::CHANNEL_CREATE
-                | EventTypeFlags::CHANNEL_DELETE
-                | EventTypeFlags::CHANNEL_UPDATE
-                | EventTypeFlags::THREAD_CREATE
-                | EventTypeFlags::THREAD_DELETE
-                | EventTypeFlags::THREAD_LIST_SYNC
-                | EventTypeFlags::THREAD_UPDATE;
+            flags |= Self::CHANNEL_CREATE
+                | Self::CHANNEL_DELETE
+                | Self::CHANNEL_UPDATE
+                | Self::THREAD_CREATE
+                | Self::THREAD_DELETE
+                | Self::THREAD_LIST_SYNC
+                | Self::THREAD_UPDATE;
         }
 
         if cache.presences {
-            flags |= EventTypeFlags::PRESENCE_UPDATE;
+            flags |= Self::PRESENCE_UPDATE;
         }
 
         if cache.emojis {
-            flags |= EventTypeFlags::GUILD_EMOJIS_UPDATE;
+            flags |= Self::GUILD_EMOJIS_UPDATE;
         }
 
         if cache.stage_instances {
-            flags |= EventTypeFlags::STAGE_INSTANCE_CREATE
-                | EventTypeFlags::STAGE_INSTANCE_DELETE
-                | EventTypeFlags::STAGE_INSTANCE_UPDATE;
+            flags |= Self::STAGE_INSTANCE_CREATE
+                | Self::STAGE_INSTANCE_DELETE
+                | Self::STAGE_INSTANCE_UPDATE;
         }
 
         if cache.voice_states {
-            flags |= EventTypeFlags::VOICE_STATE_UPDATE | EventTypeFlags::VOICE_SERVER_UPDATE;
+            flags |= Self::VOICE_STATE_UPDATE | Self::VOICE_SERVER_UPDATE;
         }
 
         if cache.users {
-            flags |= EventTypeFlags::USER_UPDATE;
+            flags |= Self::USER_UPDATE;
         }
 
         flags
@@ -132,47 +131,47 @@ impl From<Cache> for EventTypeFlags {
 }
 
 impl From<Cache> for ResourceType {
-    fn from(cache: Cache) -> ResourceType {
-        let mut resource_types = ResourceType::GUILD | ResourceType::USER_CURRENT;
+    fn from(cache: Cache) -> Self {
+        let mut resource_types = Self::GUILD | Self::USER_CURRENT;
 
         if cache.channels {
-            resource_types |= ResourceType::CHANNEL;
+            resource_types |= Self::CHANNEL;
         }
 
         if cache.emojis {
-            resource_types |= ResourceType::EMOJI;
+            resource_types |= Self::EMOJI;
         }
 
         if cache.current_member {
-            resource_types |= ResourceType::MEMBER_CURRENT;
+            resource_types |= Self::MEMBER_CURRENT;
         }
 
         if cache.members {
-            resource_types |= ResourceType::MEMBER;
+            resource_types |= Self::MEMBER;
         }
 
         if cache.presences {
-            resource_types |= ResourceType::PRESENCE;
+            resource_types |= Self::PRESENCE;
         }
 
         if cache.roles {
-            resource_types |= ResourceType::ROLE;
+            resource_types |= Self::ROLE;
         }
 
         if cache.stage_instances {
-            resource_types |= ResourceType::STAGE_INSTANCE;
+            resource_types |= Self::STAGE_INSTANCE;
         }
 
         if cache.stickers {
-            resource_types |= ResourceType::STICKER;
+            resource_types |= Self::STICKER;
         }
 
         if cache.users {
-            resource_types |= ResourceType::USER;
+            resource_types |= Self::USER;
         }
 
         if cache.voice_states {
-            resource_types |= ResourceType::VOICE_STATE;
+            resource_types |= Self::VOICE_STATE;
         }
 
         resource_types
@@ -183,7 +182,7 @@ fn default_log_level() -> String {
     String::from("info")
 }
 
-fn default_port() -> u16 {
+const fn default_port() -> u16 {
     7878
 }
 
@@ -196,11 +195,11 @@ fn token_fallback() -> String {
     }
 }
 
-fn default_status() -> Status {
+const fn default_status() -> Status {
     Status::Online
 }
 
-fn default_backpressure() -> usize {
+const fn default_backpressure() -> usize {
     100
 }
 

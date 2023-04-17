@@ -24,7 +24,7 @@ use twilight_model::{
 
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{model::JsonObject, state::State};
+use crate::{config::CONFIG, model::JsonObject, state::State};
 
 #[derive(Serialize)]
 pub struct Payload {
@@ -42,10 +42,10 @@ pub enum Event {
     GuildDelete(GuildDelete),
 }
 
-pub struct Guilds(Arc<InMemoryCache>, u64);
+pub struct Guilds(Arc<InMemoryCache>, u32);
 
 impl Guilds {
-    pub fn new(cache: Arc<InMemoryCache>, shard_id: u64) -> Self {
+    pub fn new(cache: Arc<InMemoryCache>, shard_id: u32) -> Self {
         Self(cache, shard_id)
     }
 
@@ -404,32 +404,29 @@ impl Guilds {
 pub fn not_found_body(type_name: &str) -> Body {
     let body = to_string(&HashMap::from([(
         "message",
-        format!("Unknown {}", type_name),
+        format!("Unknown {type_name}"),
     )]))
     .unwrap();
-    return Body::from(body);
+    Body::from(body)
 }
 
 fn serialize_fail_body(type_name: &str) -> Body {
     let body = to_string(&HashMap::from([(
         "message",
-        format!("Failed to serialize {}", type_name),
+        format!("Failed to serialize {type_name}"),
     )]))
     .unwrap();
-    return Body::from(body);
+    Body::from(body)
 }
 
 fn bad_request_body() -> Body {
     let body = to_string(&HashMap::from([("message", "Bad Request")])).unwrap();
-    return Body::from(body);
+    Body::from(body)
 }
 
-pub(crate) fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
+pub fn handle_cache_guild(value: &str, state: &State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
-    let id = match value.parse::<u64>() {
-        Ok(id) => id,
-        Err(_) => return response.status(400).body(bad_request_body()).unwrap(),
-    };
+    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
     if id == 0 {
         return response.status(400).body(bad_request_body()).unwrap();
     }
@@ -437,7 +434,7 @@ pub(crate) fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
     let guild_id = Id::<GuildMarker>::new(id);
     let mut guild = None;
     for shard in &state.shards {
-        if !shard.guilds.cache().guild(guild_id).is_none() {
+        if shard.guilds.cache().guild(guild_id).is_some() {
             guild = Some(shard.guilds.cache().guild(guild_id).unwrap().clone());
         }
     }
@@ -448,20 +445,17 @@ pub(crate) fn handle_cache_guild(value: &str, state: State) -> Response<Body> {
 
     if let Ok(serialized) = to_string(&guild.unwrap()) {
         return response.body(Body::from(serialized)).unwrap();
-    } else {
-        return response
-            .status(503)
-            .body(serialize_fail_body("guild"))
-            .unwrap();
     }
+
+    response
+        .status(503)
+        .body(serialize_fail_body("guild"))
+        .unwrap()
 }
 
-pub(crate) fn handle_cache_channel(value: &str, state: State) -> Response<Body> {
+pub fn handle_cache_channel(value: &str, state: &State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
-    let id = match value.parse::<u64>() {
-        Ok(id) => id,
-        Err(_) => return response.status(400).body(bad_request_body()).unwrap(),
-    };
+    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
     if id == 0 {
         return response.status(400).body(bad_request_body()).unwrap();
     }
@@ -469,7 +463,7 @@ pub(crate) fn handle_cache_channel(value: &str, state: State) -> Response<Body> 
     let channel_id = Id::<ChannelMarker>::new(id);
     let mut channel = None;
     for shard in &state.shards {
-        if !shard.guilds.cache().channel(channel_id).is_none() {
+        if shard.guilds.cache().channel(channel_id).is_some() {
             channel = Some(shard.guilds.cache().channel(channel_id).unwrap().clone());
         }
     }
@@ -483,20 +477,17 @@ pub(crate) fn handle_cache_channel(value: &str, state: State) -> Response<Body> 
 
     if let Ok(serialized) = to_string(&channel.unwrap()) {
         return response.body(Body::from(serialized)).unwrap();
-    } else {
-        return response
-            .status(503)
-            .body(serialize_fail_body("channel"))
-            .unwrap();
     }
+
+    response
+        .status(503)
+        .body(serialize_fail_body("channel"))
+        .unwrap()
 }
 
-pub(crate) fn handle_cache_user(value: &str, state: State) -> Response<Body> {
+pub fn handle_cache_user(value: &str, state: &State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
-    let id = match value.parse::<u64>() {
-        Ok(id) => id,
-        Err(_) => return response.status(400).body(bad_request_body()).unwrap(),
-    };
+    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
     if id == 0 {
         return response.status(400).body(bad_request_body()).unwrap();
     }
@@ -504,7 +495,7 @@ pub(crate) fn handle_cache_user(value: &str, state: State) -> Response<Body> {
     let user_id = Id::<UserMarker>::new(id);
     let mut user = None;
     for shard in &state.shards {
-        if !shard.guilds.cache().user(user_id).is_none() {
+        if shard.guilds.cache().user(user_id).is_some() {
             user = Some(shard.guilds.cache().user(user_id).unwrap().clone());
         }
     }
@@ -515,10 +506,43 @@ pub(crate) fn handle_cache_user(value: &str, state: State) -> Response<Body> {
 
     if let Ok(serialized) = to_string(&user.unwrap()) {
         return response.body(Body::from(serialized)).unwrap();
-    } else {
-        return response
-            .status(503)
-            .body(serialize_fail_body("user"))
-            .unwrap();
     }
+
+    response
+        .status(503)
+        .body(serialize_fail_body("user"))
+        .unwrap()
+}
+
+pub fn handle_cache_isbotuser(value: &str, state: &State) -> Response<Body> {
+    let response = Response::builder().header("Content-Type", "application/json");
+    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
+    if id == 0 || CONFIG.support_guild_id.is_none() {
+        return response.status(400).body(bad_request_body()).unwrap();
+    }
+
+    let user_id = Id::<UserMarker>::new(id);
+    let support_guild_id = Id::<GuildMarker>::new(CONFIG.support_guild_id.unwrap());
+    let mut found = false;
+    for shard in &state.shards {
+        if shard.guilds.cache().user(user_id).is_some() {
+            shard
+                .guilds
+                .cache()
+                .user_guilds(user_id)
+                .unwrap()
+                .iter()
+                .for_each(|guild| {
+                    if guild.get() != support_guild_id {
+                        found = true;
+                    }
+                });
+        }
+    }
+
+    response
+        .body(Body::from(
+            to_string(&HashMap::from([("found", found)])).unwrap(),
+        ))
+        .unwrap()
 }
