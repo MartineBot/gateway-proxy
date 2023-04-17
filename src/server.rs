@@ -410,9 +410,7 @@ fn get_health(state: &State) -> Response<Body> {
 fn handle_health_req(
     state: State,
 ) -> Pin<Box<dyn Future<Output = Result<Response<Body>, Infallible>> + Send + 'static>> {
-    Box::pin(async move {
-        Ok(get_health(&state.clone()))
-    })
+    Box::pin(async move { Ok(get_health(&state.clone())) })
 }
 
 pub async fn run(
