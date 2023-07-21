@@ -9,7 +9,7 @@ base64 = "0.21"
 dashmap = "5.1"
 flate2 = { version = "1.0", default-features = false }
 futures-util = { version = "0.3", default-features = false }
-halfbrown = { version = "0.1", features = ["serde"] }
+halfbrown = { version = "0.2", features = ["serde"] }
 hyper = { version = "0.14", default-features = false, features = [
     "server",
     "http1",
@@ -17,8 +17,8 @@ hyper = { version = "0.14", default-features = false, features = [
 ] }
 itoa = "1.0"
 libc = { version = "0.2", default-features = false }
-metrics = { version = "0.20", default-features = false }
-metrics-exporter-prometheus = { version = "0.11", default-features = false }
+metrics = { version = "0.21", default-features = false }
+metrics-exporter-prometheus = { version = "0.12", default-features = false }
 mimalloc = { version = "0.1", default-features = false, features = [
     "override"
 ] }
@@ -26,10 +26,10 @@ rand = "0.8"
 ring = { version = "0.16", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["std"], optional = true }
-simd-json = { version = "0.7", default-features = false, features = [
+simd-json = { version = "0.9", default-features = false, features = [
     "serde_impl"
 ], optional = true }
-tokio-tungstenite = { version = "0.18", default-features = false }
+tokio-tungstenite = { version = "0.19", default-features = false }
 tokio = { version = "1", default-features = false, features = [
     "rt-multi-thread",
     "macros"

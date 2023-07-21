@@ -386,6 +386,7 @@ impl Guilds {
                     voice_states,
                     widget_channel_id: guild.widget_channel_id(),
                     widget_enabled: guild.widget_enabled(),
+                    safety_alerts_channel_id: guild.safety_alerts_channel_id(),
                 };
 
                 let guild_create = GuildCreate(new_guild);
@@ -426,7 +427,9 @@ fn bad_request_body() -> Body {
 
 pub fn handle_cache_guild(value: &str, state: &State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
-    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
+    let Ok(id) = value.parse::<u64>() else {
+        return response.status(400).body(bad_request_body()).unwrap();
+    };
     if id == 0 {
         return response.status(400).body(bad_request_body()).unwrap();
     }
@@ -455,7 +458,9 @@ pub fn handle_cache_guild(value: &str, state: &State) -> Response<Body> {
 
 pub fn handle_cache_channel(value: &str, state: &State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
-    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
+    let Ok(id) = value.parse::<u64>() else {
+        return response.status(400).body(bad_request_body()).unwrap();
+    };
     if id == 0 {
         return response.status(400).body(bad_request_body()).unwrap();
     }
@@ -487,7 +492,9 @@ pub fn handle_cache_channel(value: &str, state: &State) -> Response<Body> {
 
 pub fn handle_cache_user(value: &str, state: &State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
-    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
+    let Ok(id) = value.parse::<u64>() else {
+        return response.status(400).body(bad_request_body()).unwrap();
+    };
     if id == 0 {
         return response.status(400).body(bad_request_body()).unwrap();
     }
@@ -516,7 +523,9 @@ pub fn handle_cache_user(value: &str, state: &State) -> Response<Body> {
 
 pub fn handle_cache_isbotuser(value: &str, state: &State) -> Response<Body> {
     let response = Response::builder().header("Content-Type", "application/json");
-    let Ok(id) = value.parse::<u64>() else { return response.status(400).body(bad_request_body()).unwrap() };
+    let Ok(id) = value.parse::<u64>() else {
+        return response.status(400).body(bad_request_body()).unwrap();
+    };
     if id == 0 || CONFIG.support_guild_id.is_none() {
         return response.status(400).body(bad_request_body()).unwrap();
     }

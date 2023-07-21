@@ -1,10 +1,9 @@
 use flate2::{Compress, Compression, FlushCompress, Status};
-use futures_util::{Future, Sink, SinkExt, StreamExt};
+use futures_util::{Sink, SinkExt, StreamExt};
 use hyper::{
-    http::request::Parts,
     server::conn::AddrStream,
     service::{make_service_fn, service_fn},
-    Body, Request, Response, Server,
+    Body, Request, Response, Server, StatusCode,
 };
 use itoa::Buffer;
 use metrics_exporter_prometheus::PrometheusHandle;
@@ -29,12 +28,11 @@ use twilight_gateway::shard::raw_message::Message as TwilightMessage;
 use twilight_http::Client;
 use twilight_util::{builder::embed::EmbedBuilder, link::webhook as webhook_link};
 
-use std::{convert::Infallible, net::SocketAddr, pin::Pin, sync::Arc};
+use std::{convert::Infallible, net::SocketAddr, sync::Arc};
 
 use crate::{
     cache::{
-        handle_cache_channel, handle_cache_guild, handle_cache_isbotuser, handle_cache_user,
-        not_found_body, Event,
+        handle_cache_channel, handle_cache_guild, handle_cache_isbotuser, handle_cache_user, Event,
     },
     config::CONFIG,
     deserializer::{GatewayEvent, SequenceInfo},
@@ -100,7 +98,7 @@ where
         sink.send(Message::Text(HELLO.to_string())).await?;
     }
 
-    if compress_rx.await != Ok(Some(true)) {
+    if compress_rx.await == Ok(Some(true)) {
         use_zlib = true;
     }
 
@@ -225,7 +223,9 @@ pub async fn handle_client<S: 'static + AsyncRead + AsyncWrite + Unpin + Send>(
         #[cfg(not(feature = "simd-json"))]
         let payload = unsafe { String::from_utf8_unchecked(data) };
 
-        let Some(deserializer) = GatewayEvent::from_json(&payload) else { continue };
+        let Some(deserializer) = GatewayEvent::from_json(&payload) else {
+            continue;
+        };
 
         match deserializer.op() {
             1 => {
@@ -359,41 +359,52 @@ pub async fn handle_client<S: 'static + AsyncRead + AsyncWrite + Unpin + Send>(
     Ok(())
 }
 
-fn handle_metrics(
-    handle: Arc<PrometheusHandle>,
-) -> Pin<Box<dyn Future<Output = Result<Response<Body>, Infallible>> + Send>> {
-    Box::pin(async move {
-        Ok(Response::builder()
-            .body(Body::from(handle.render()))
-            .unwrap())
-    })
-}
-
-fn handle_cache(
-    parts: Parts,
+async fn handler(
+    addr: SocketAddr,
+    request: Request<Body>,
     state: State,
-) -> Pin<Box<dyn Future<Output = Result<Response<Body>, Infallible>> + Send + 'static>> {
-    Box::pin(async move {
-        let segments: Vec<&str> = parts
-            .uri
-            .path()
-            .split('/')
-            .filter(|s| !s.is_empty())
-            .collect();
-        let response = match segments[..] {
-            ["cache", "guild", id] => handle_cache_guild(id, &state.clone()),
-            ["cache", "channel", id] => handle_cache_channel(id, &state.clone()),
-            ["cache", "user", id] => handle_cache_user(id, &state.clone()),
-            ["cache", "is_botuser", id] => handle_cache_isbotuser(id, &state.clone()),
-            _ => Response::builder()
-                .status(404)
-                .header("Content-Type", "application/json")
-                .body(not_found_body("cache request"))
-                .unwrap(),
-        };
+    metrics: Arc<PrometheusHandle>,
+) -> Result<Response<Body>, Infallible> {
+    if request.method() != hyper::Method::GET {
+        return Ok(Response::builder()
+            .status(StatusCode::METHOD_NOT_ALLOWED)
+            .body(Body::from("Method not allowed"))
+            .unwrap());
+    }
 
-        Ok(response)
-    })
+    let segments: Vec<&str> = request
+        .uri()
+        .path()
+        .split('/')
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    let response = match segments[..] {
+        ["metrics"] => Response::builder()
+            .status(StatusCode::OK)
+            .body(Body::from(metrics.render()))
+            .unwrap(),
+        ["shard-count"] => {
+            let mut buffer = itoa::Buffer::new();
+            let shard_count_str = buffer.format(state.shard_count);
+
+            Response::builder()
+                .status(StatusCode::OK)
+                .body(Body::from(shard_count_str.to_owned()))
+                .unwrap()
+        }
+        ["health"] => get_health(&state),
+        ["cache", "guild", id] => handle_cache_guild(id.clone(), &state),
+        ["cache", "channel", id] => handle_cache_channel(id.clone(), &state),
+        ["cache", "user", id] => handle_cache_user(id.clone(), &state),
+        ["cache", "is_botuser", id] => handle_cache_isbotuser(id.clone(), &state),
+
+        // Usually one would return a 404 here, but we will just provide the websocket
+        // upgrade for backwards compatibility.
+        _ => upgrade::server(addr, request, state).await,
+    };
+
+    Ok(response)
 }
 
 fn get_health(state: &State) -> Response<Body> {
@@ -408,12 +419,6 @@ fn get_health(state: &State) -> Response<Body> {
         .status(200)
         .body(Body::from("OK".to_string()))
         .unwrap()
-}
-
-fn handle_health_req(
-    state: State,
-) -> Pin<Box<dyn Future<Output = Result<Response<Body>, Infallible>> + Send + 'static>> {
-    Box::pin(async move { Ok(get_health(&state.clone())) })
 }
 
 pub async fn run(
@@ -433,17 +438,7 @@ pub async fn run(
 
         async move {
             Ok::<_, Infallible>(service_fn(move |incoming: Request<Body>| {
-                if incoming.uri().path() == "/metrics" {
-                    // Reply with metrics on /metrics
-                    handle_metrics(metrics_handle.clone())
-                } else if incoming.uri().path().starts_with("/cache") {
-                    handle_cache(incoming.into_parts().0, state.clone())
-                } else if incoming.uri().path() == "/health" {
-                    handle_health_req(state.clone())
-                } else {
-                    // On anything else just provide the websocket server
-                    Box::pin(upgrade::server(addr, incoming, state.clone()))
-                }
+                handler(addr, incoming, state.clone(), metrics_handle.clone())
             }))
         }
     });
