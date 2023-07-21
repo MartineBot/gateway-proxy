@@ -24,9 +24,7 @@ use tokio_tungstenite::{
     WebSocketStream,
 };
 use tracing::{debug, error, info, trace, warn};
-use twilight_gateway::shard::raw_message::Message as TwilightMessage;
 use twilight_http::Client;
-use twilight_util::{builder::embed::EmbedBuilder, link::webhook as webhook_link};
 
 use std::{convert::Infallible, net::SocketAddr, sync::Arc};
 
@@ -38,6 +36,7 @@ use crate::{
     deserializer::{GatewayEvent, SequenceInfo},
     model::{Identify, Resume},
     state::{Session, Shard, State},
+    status::discord_log,
     upgrade,
 };
 
@@ -446,20 +445,7 @@ pub async fn run(
     let server = Server::bind(&addr).serve(service);
 
     info!("Listening on {addr}");
-
-    if let Ok((webhook_id, webhook_token)) =
-        webhook_link::parse(&CONFIG.webhook_url.clone().unwrap_or_default())
-    {
-        let em = EmbedBuilder::new()
-            .title("Gateway ready!")
-            .color(0x008800)
-            .build();
-        let _ = client
-            .execute_webhook(webhook_id, &webhook_token.unwrap_or_default())
-            .embeds(&[em])
-            .exec()
-            .await?;
-    }
+    discord_log(client, 0, "Gateway starting...", "");
 
     if let Err(why) = server.await {
         error!("Fatal server error: {why}");

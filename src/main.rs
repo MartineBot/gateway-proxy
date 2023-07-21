@@ -37,6 +37,7 @@ mod model;
 mod server;
 mod state;
 mod upgrade;
+mod status;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -144,6 +145,7 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
             shard_status.clone(),
             shard_id,
             broadcast_tx,
+            client.clone(),
         ));
 
         shards.push(shard_status);

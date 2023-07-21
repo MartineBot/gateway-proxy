@@ -13,6 +13,7 @@ use crate::{
     deserializer::{EventTypeInfo, GatewayEvent, SequenceInfo},
     model::Ready,
     state::Shard as ShardState,
+    status::discord_log,
 };
 
 pub type BroadcastMessage = (String, Option<SequenceInfo>);
@@ -24,6 +25,7 @@ pub async fn events(
     shard_state: Arc<ShardState>,
     shard_id: u32,
     broadcast_tx: broadcast::Sender<BroadcastMessage>,
+    client: Arc<twilight_http::Client>,
 ) {
     // This method only wants to relay events while the shard is in a READY state
     // Therefore, we only put events in the queue while we are connected and READY
@@ -101,8 +103,20 @@ pub async fn events(
                     shard_state.ready.set_ready(ready.d);
                     is_ready = true;
                     info!("[Shard {shard_id}] Ready!");
+                    discord_log(
+                        client.clone(),
+                        0x00FF00,
+                        "Shard Ready",
+                        format!("Shard {} is ready!", shard_id),
+                    );
                 } else if event_name == "RESUMED" {
                     is_ready = true;
+                    discord_log(
+                        client.clone(),
+                        0x00FF00,
+                        "Shard Resumed",
+                        format!("Shard {} has resumed.", shard_id),
+                    );
                 } else if op.0 == 0 && is_ready {
                     // We only want to relay dispatchable events, not RESUMEs and not READY
                     // because we fake a READY event

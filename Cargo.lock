@@ -1444,8 +1444,8 @@ dependencies = [
 
 [[package]]
 name = "twilight-util"
-version = "0.15.0"
-source = "git+https://github.com/Gelbpunkt/twilight.git?branch=15-custom#fbb64207d5c78240efe88644eb2dbad0fc7e4380"
+version = "0.15.2"
+source = "git+https://github.com/Gelbpunkt/twilight.git?branch=15-custom#5cfd0b2b0016ee30c43e0740a9e70254fd1cc9d0"
 dependencies = [
  "twilight-model",
  "twilight-validate",
