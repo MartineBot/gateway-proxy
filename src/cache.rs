@@ -386,6 +386,7 @@ impl Guilds {
                     voice_states,
                     widget_channel_id: guild.widget_channel_id(),
                     widget_enabled: guild.widget_enabled(),
+                    safety_alerts_channel_id: guild.safety_alerts_channel_id(),
                 };
 
                 let guild_create = GuildCreate(new_guild);
