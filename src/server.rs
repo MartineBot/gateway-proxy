@@ -391,24 +391,19 @@ async fn handler(
                 .unwrap()
         }
         ["health"] => {
-            let response = get_health(&state.clone());
-            response
+            get_health(&state)
         }
         ["cache", "guild", id] => {
-            let response = handle_cache_guild(id.clone(), &state.clone());
-            response
+            handle_cache_guild(id.clone(), &state)
         }
         ["cache", "channel", id] => {
-            let response = handle_cache_channel(id.clone(), &state.clone());
-            response
+            handle_cache_channel(id.clone(), &state)
         }
         ["cache", "user", id] => {
-            let response = handle_cache_user(id.clone(), &state.clone());
-            response
+            handle_cache_user(id.clone(), &state)
         }
         ["cache", "is_botuser", id] => {
-            let response = handle_cache_isbotuser(id.clone(), &state.clone());
-            response
+            handle_cache_isbotuser(id.clone(), &state)
         }
 
         // Usually one would return a 404 here, but we will just provide the websocket
