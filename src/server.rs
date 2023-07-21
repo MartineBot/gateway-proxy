@@ -1,10 +1,9 @@
 use flate2::{Compress, Compression, FlushCompress, Status};
 use futures_util::{Sink, SinkExt, StreamExt};
 use hyper::{
-    http::request::Parts,
     server::conn::AddrStream,
     service::{make_service_fn, service_fn},
-    Body, Method, Request, Response, Server, StatusCode,
+    Body, Request, Response, Server, StatusCode,
 };
 use itoa::Buffer;
 use metrics_exporter_prometheus::PrometheusHandle;
@@ -30,8 +29,7 @@ use std::{convert::Infallible, net::SocketAddr, sync::Arc};
 
 use crate::{
     cache::{
-        handle_cache_channel, handle_cache_guild, handle_cache_isbotuser, handle_cache_user,
-        not_found_body, Event,
+        handle_cache_channel, handle_cache_guild, handle_cache_isbotuser, handle_cache_user, Event,
     },
     config::CONFIG,
     deserializer::{GatewayEvent, SequenceInfo},
@@ -362,12 +360,26 @@ async fn handler(
     state: State,
     metrics: Arc<PrometheusHandle>,
 ) -> Result<Response<Body>, Infallible> {
-    let response = match (request.method(), request.uri().path()) {
-        (&Method::GET, "/metrics") => Response::builder()
+    if request.method() != hyper::Method::GET {
+        return Ok(Response::builder()
+            .status(StatusCode::METHOD_NOT_ALLOWED)
+            .body(Body::from("Method not allowed"))
+            .unwrap());
+    }
+
+    let segments: Vec<&str> = request
+        .uri()
+        .path()
+        .split('/')
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    let response = match segments[..] {
+        ["metrics"] => Response::builder()
             .status(StatusCode::OK)
             .body(Body::from(metrics.render()))
             .unwrap(),
-        (&Method::GET, "/shard-count") => {
+        ["shard-count"] => {
             let mut buffer = itoa::Buffer::new();
             let shard_count_str = buffer.format(state.shard_count);
 
@@ -376,39 +388,33 @@ async fn handler(
                 .body(Body::from(shard_count_str.to_owned()))
                 .unwrap()
         }
+        ["health"] => {
+            let response = get_health(&state.clone());
+            response
+        }
+        ["cache", "guild", id] => {
+            let response = handle_cache_guild(id.clone(), &state.clone());
+            response
+        }
+        ["cache", "channel", id] => {
+            let response = handle_cache_channel(id.clone(), &state.clone());
+            response
+        }
+        ["cache", "user", id] => {
+            let response = handle_cache_user(id.clone(), &state.clone());
+            response
+        }
+        ["cache", "is_botuser", id] => {
+            let response = handle_cache_isbotuser(id.clone(), &state.clone());
+            response
+        }
+
         // Usually one would return a 404 here, but we will just provide the websocket
         // upgrade for backwards compatibility.
         _ => upgrade::server(addr, request, state).await,
     };
 
     Ok(response)
-}
-
-fn handle_cache(
-    parts: Parts,
-    state: State,
-) -> Pin<Box<dyn Future<Output = Result<Response<Body>, Infallible>> + Send + 'static>> {
-    Box::pin(async move {
-        let segments: Vec<&str> = parts
-            .uri
-            .path()
-            .split('/')
-            .filter(|s| !s.is_empty())
-            .collect();
-        let response = match segments[..] {
-            ["cache", "guild", id] => handle_cache_guild(id, &state.clone()),
-            ["cache", "channel", id] => handle_cache_channel(id, &state.clone()),
-            ["cache", "user", id] => handle_cache_user(id, &state.clone()),
-            ["cache", "is_botuser", id] => handle_cache_isbotuser(id, &state.clone()),
-            _ => Response::builder()
-                .status(404)
-                .header("Content-Type", "application/json")
-                .body(not_found_body("cache request"))
-                .unwrap(),
-        };
-
-        Ok(response)
-    })
 }
 
 fn get_health(state: &State) -> Response<Body> {
@@ -423,12 +429,6 @@ fn get_health(state: &State) -> Response<Body> {
         .status(200)
         .body(Body::from("OK".to_string()))
         .unwrap()
-}
-
-fn handle_health_req(
-    state: State,
-) -> Pin<Box<dyn Future<Output = Result<Response<Body>, Infallible>> + Send + 'static>> {
-    Box::pin(async move { Ok(get_health(&state.clone())) })
 }
 
 pub async fn run(
@@ -447,17 +447,6 @@ pub async fn run(
 
         async move {
             Ok::<_, Infallible>(service_fn(move |incoming: Request<Body>| {
-                if incoming.uri().path() == "/metrics" {
-                    // Reply with metrics on /metrics
-                    handle_metrics(metrics_handle.clone())
-                } else if incoming.uri().path().starts_with("/cache") {
-                    handle_cache(incoming.into_parts().0, state.clone())
-                } else if incoming.uri().path() == "/health" {
-                    handle_health_req(state.clone())
-                } else {
-                    // On anything else just provide the websocket server
-                    Box::pin(upgrade::server(addr, incoming, state.clone()))
-                }
                 handler(addr, incoming, state.clone(), metrics_handle.clone())
             }))
         }
