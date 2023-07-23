@@ -34,9 +34,9 @@ use crate::{
     },
     config::CONFIG,
     deserializer::{GatewayEvent, SequenceInfo},
+    discord_log::discord_log,
     model::{Identify, Resume},
     state::{Session, Shard, State},
-    status::discord_log,
     upgrade,
 };
 
@@ -445,7 +445,7 @@ pub async fn run(
     let server = Server::bind(&addr).serve(service);
 
     info!("Listening on {addr}");
-    discord_log(client, 0, "Gateway starting...", "");
+    discord_log(client, 0x0060_7d8b, "Gateway starting...", "");
 
     if let Err(why) = server.await {
         error!("Fatal server error: {why}");

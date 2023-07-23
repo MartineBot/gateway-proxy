@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::CONFIG;
+use tracing::warn;
 use twilight_http::Client;
 use twilight_util::{builder::embed::EmbedBuilder, link::webhook as webhook_link};
 
@@ -10,8 +11,8 @@ pub fn discord_log(
     title: impl Into<String>,
     message: impl Into<String>,
 ) {
-    let title = title.into();
-    let message = message.into();
+    let title: String = title.into();
+    let message: String = message.into();
 
     tokio::spawn(async move {
         let webhook_url = CONFIG.webhook_url.clone().unwrap();
@@ -19,17 +20,20 @@ pub fn discord_log(
             return;
         }
         let Ok((webhook_id, webhook_token)) = webhook_link::parse(&webhook_url) else {
+            warn!("Invalid webhook URL");
             return;
         };
         let em = EmbedBuilder::new()
-            .color(Some(color as u32).unwrap())
+            .color(color as u32)
             .title(title)
             .description(message)
             .build();
 
-        let _ = client
-            .execute_webhook(webhook_id, &webhook_token.unwrap())
+        client
+            .execute_webhook(webhook_id, webhook_token.unwrap())
             .username("Gateway Proxy")
-            .embeds(&[em]);
+            .embeds(&[em])
+            .await
+            .expect("Failed to send webhook message");
     });
 }

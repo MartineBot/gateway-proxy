@@ -32,12 +32,12 @@ use crate::config::CONFIG;
 mod cache;
 mod config;
 mod deserializer;
+mod discord_log;
 mod dispatch;
 mod model;
 mod server;
 mod state;
 mod upgrade;
-mod status;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
