@@ -24,6 +24,7 @@ use tokio_tungstenite::{
     WebSocketStream,
 };
 use tracing::{debug, error, info, trace, warn};
+use twilight_http::Client;
 
 use std::{convert::Infallible, net::SocketAddr, sync::Arc};
 
@@ -33,6 +34,7 @@ use crate::{
     },
     config::CONFIG,
     deserializer::{GatewayEvent, SequenceInfo},
+    discord_log::discord_log,
     model::{Identify, Resume},
     state::{Session, Shard, State},
     upgrade,
@@ -422,6 +424,7 @@ pub async fn run(
     port: u16,
     state: State,
     metrics_handle: Arc<PrometheusHandle>,
+    client: Arc<Client>,
 ) -> Result<(), Error> {
     let addr: SocketAddr = ([0, 0, 0, 0], port).into();
 
@@ -442,6 +445,7 @@ pub async fn run(
     let server = Server::bind(&addr).serve(service);
 
     info!("Listening on {addr}");
+    discord_log(client, 0x0060_7d8b, "Gateway starting...", "");
 
     if let Err(why) = server.await {
         error!("Fatal server error: {why}");

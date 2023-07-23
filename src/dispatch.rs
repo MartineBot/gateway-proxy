@@ -3,7 +3,7 @@ use itoa::Buffer;
 use simd_json::Mutable;
 use tokio::{sync::broadcast, time::Instant};
 use tracing::{info, trace};
-use twilight_gateway::{parse, ConnectionStatus, Event, EventTypeFlags, Message, Shard};
+use twilight_gateway::{parse, ConnectionStatus, Event, EventType, EventTypeFlags, Message, Shard};
 use twilight_model::gateway::event::GatewayEvent as TwilightGatewayEvent;
 
 use std::{sync::Arc, time::Duration};
@@ -11,6 +11,7 @@ use std::{sync::Arc, time::Duration};
 use crate::{
     config::CONFIG,
     deserializer::{EventTypeInfo, GatewayEvent, SequenceInfo},
+    discord_log::discord_log,
     model::Ready,
     state::Shard as ShardState,
 };
@@ -24,6 +25,7 @@ pub async fn events(
     shard_state: Arc<ShardState>,
     shard_id: u32,
     broadcast_tx: broadcast::Sender<BroadcastMessage>,
+    client: Arc<twilight_http::Client>,
 ) {
     // This method only wants to relay events while the shard is in a READY state
     // Therefore, we only put events in the queue while we are connected and READY
@@ -100,23 +102,44 @@ pub async fn events(
                     // since this data is timeless
                     shard_state.ready.set_ready(ready.d);
                     is_ready = true;
-                    info!("[Shard {shard_id}] Ready!");
+                    info!("[Shard {shard_id_str}] Ready!");
+                    discord_log(
+                        client.clone(),
+                        0x002E_CC71,
+                        "Shard Ready",
+                        format!("Shard {shard_id_str} is ready!"),
+                    );
                 } else if event_name == "RESUMED" {
                     is_ready = true;
+                    discord_log(
+                        client.clone(),
+                        0x001A_BC9C,
+                        "Shard Resumed",
+                        format!("Shard {shard_id_str} has resumed."),
+                    );
                 } else if op.0 == 0 && is_ready {
                     // We only want to relay dispatchable events, not RESUMEs and not READY
                     // because we fake a READY event
                     let payload_copy = payload.clone();
-                    trace!("[Shard {shard_id}] Sending payload to clients: {payload_copy:?}",);
+                    trace!("[Shard {shard_id_str}] Sending payload to clients: {payload_copy:?}",);
 
                     let _res = broadcast_tx.send((payload_copy, sequence));
                 }
             }
 
-            if let Ok(Some(event)) = parse(payload, event_type_flags) {
-                match event {
-                    TwilightGatewayEvent::Dispatch(_, event) => {
-                        shard_state.guilds.update(Event::from(event));
+            if let Ok(Some(gateway_event)) = parse(payload, event_type_flags) {
+                match gateway_event {
+                    TwilightGatewayEvent::Dispatch(_, gateway_event) => {
+                        let event = Event::from(gateway_event);
+                        if event.kind() == EventType::GatewayClose {
+                            discord_log(
+                                client.clone(),
+                                0x00FF_0000,
+                                "Shard Disconnected",
+                                format!("Shard {shard_id_str} has disconnected."),
+                            );
+                        }
+                        shard_state.guilds.update(event);
                     }
                     TwilightGatewayEvent::InvalidateSession(can_resume) => {
                         info!("[Shard {shard_id}] Session invalidated, resumable: {can_resume}");

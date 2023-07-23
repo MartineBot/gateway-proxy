@@ -32,6 +32,7 @@ use crate::config::CONFIG;
 mod cache;
 mod config;
 mod deserializer;
+mod discord_log;
 mod dispatch;
 mod model;
 mod server;
@@ -144,6 +145,7 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
             shard_status.clone(),
             shard_id,
             broadcast_tx,
+            client.clone(),
         ));
 
         shards.push(shard_status);
@@ -157,7 +159,7 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
         sessions: RwLock::new(HashMap::new()),
     });
 
-    if let Err(e) = server::run(CONFIG.port, state, metrics_handle).await {
+    if let Err(e) = server::run(CONFIG.port, state, metrics_handle, client.clone()).await {
         error!("{}", e);
     };
 

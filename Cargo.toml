@@ -50,6 +50,7 @@ twilight-http = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "1
     "rustls-webpki-roots",
 ] }
 twilight-model = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "15-custom" }
+twilight-util = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "15-custom", features = [ "builder", "link" ] }
 
 [features]
 default = ["simd"]
