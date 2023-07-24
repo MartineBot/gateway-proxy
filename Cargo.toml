@@ -39,18 +39,18 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
     "fmt",
     "std"
 ] }
-twilight-cache-inmemory = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "15-custom", default-features = false }
-twilight-gateway = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "15-custom", default-features = false, features = [
+twilight-cache-inmemory = { git = "https://github.com/Gelbpunkt/twilight.git", rev = "c6e8b69c7cab9484a817b142086e540108b5f32e", default-features = false }
+twilight-gateway = { git = "https://github.com/Gelbpunkt/twilight.git", rev = "c6e8b69c7cab9484a817b142086e540108b5f32e", default-features = false, features = [
     "rustls-webpki-roots",
 ] }
-twilight-gateway-queue = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "15-custom", default-features = false, features = [
+twilight-gateway-queue = { git = "https://github.com/Gelbpunkt/twilight.git", rev = "c6e8b69c7cab9484a817b142086e540108b5f32e", default-features = false, features = [
     "twilight-http",
 ] }
-twilight-http = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "15-custom", default-features = false, features = [
+twilight-http = { git = "https://github.com/Gelbpunkt/twilight.git", rev = "c6e8b69c7cab9484a817b142086e540108b5f32e", default-features = false, features = [
     "rustls-webpki-roots",
 ] }
-twilight-model = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "15-custom" }
-twilight-util = { git = "https://github.com/Gelbpunkt/twilight.git", branch = "15-custom", features = [ "builder", "link" ] }
+twilight-model = { git = "https://github.com/Gelbpunkt/twilight.git", rev = "c6e8b69c7cab9484a817b142086e540108b5f32e" }
+twilight-util = { git = "https://github.com/Gelbpunkt/twilight.git", rev = "c6e8b69c7cab9484a817b142086e540108b5f32e", features = [ "builder", "link" ] }
 
 [features]
 default = ["simd"]
