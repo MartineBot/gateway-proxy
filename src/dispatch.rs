@@ -24,6 +24,7 @@ pub async fn events(
     mut shard: Shard,
     shard_state: Arc<ShardState>,
     shard_id: u32,
+    shard_count: u32,
     broadcast_tx: broadcast::Sender<BroadcastMessage>,
     client: Arc<twilight_http::Client>,
 ) {
@@ -102,12 +103,12 @@ pub async fn events(
                     // since this data is timeless
                     shard_state.ready.set_ready(ready.d);
                     is_ready = true;
-                    info!("[Shard {shard_id_str}] Ready!");
+                    info!("[Shard {shard_id_str}/{shard_count}] Ready!");
                     discord_log(
                         client.clone(),
                         0x002E_CC71,
                         "Shard Ready",
-                        format!("Shard {shard_id_str} is ready!"),
+                        format!("Shard `{shard_id_str}/{shard_count}` is ready!"),
                     );
                 } else if event_name == "RESUMED" {
                     is_ready = true;
@@ -115,7 +116,7 @@ pub async fn events(
                         client.clone(),
                         0x001A_BC9C,
                         "Shard Resumed",
-                        format!("Shard {shard_id_str} has resumed."),
+                        format!("Shard `{shard_id_str}` has resumed."),
                     );
                 } else if op.0 == 0 && is_ready {
                     // We only want to relay dispatchable events, not RESUMEs and not READY
@@ -136,7 +137,7 @@ pub async fn events(
                                 client.clone(),
                                 0x00FF_0000,
                                 "Shard Disconnected",
-                                format!("Shard {shard_id_str} has disconnected."),
+                                format!("Shard `{shard_id_str}` has disconnected."),
                             );
                         }
                         shard_state.guilds.update(event);

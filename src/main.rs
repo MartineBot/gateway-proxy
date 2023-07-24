@@ -28,6 +28,7 @@ use std::{
 };
 
 use crate::config::CONFIG;
+use discord_log::discord_log;
 
 mod cache;
 mod config;
@@ -95,6 +96,12 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
     let mut shards = Vec::with_capacity((shard_end - shard_start) as usize);
 
     info!("Creating shards {shard_start} to {shard_end_inclusive} of {shard_count} total",);
+    discord_log(
+        client.clone(),
+        0x0060_7d8b,
+        format!("Gateway starting with {shard_count} shards..."),
+        "",
+    );
 
     let config = Config::builder(CONFIG.token.clone(), CONFIG.intents)
         .queue(queue)
@@ -144,6 +151,7 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
             shard,
             shard_status.clone(),
             shard_id,
+            shard_count,
             broadcast_tx,
             client.clone(),
         ));
@@ -159,7 +167,7 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
         sessions: RwLock::new(HashMap::new()),
     });
 
-    if let Err(e) = server::run(CONFIG.port, state, metrics_handle, client.clone()).await {
+    if let Err(e) = server::run(CONFIG.port, state, metrics_handle).await {
         error!("{}", e);
     };
 
