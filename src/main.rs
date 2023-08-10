@@ -19,6 +19,7 @@ use twilight_gateway::{Config, ConfigBuilder, Shard, ShardId};
 use twilight_gateway_queue::{LargeBotQueue, Queue};
 use twilight_http::Client;
 use twilight_model::gateway::payload::outgoing::update_presence::UpdatePresencePayload;
+use twilight_model::gateway::presence::ActivityType;
 
 use std::{
     collections::HashMap,
@@ -114,6 +115,9 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
         if let Some(mut activity) = CONFIG.activity.clone() {
             // Replace {{shard}} with the actual ID
             activity.name = activity.name.replace("{{shard}}", &shard_id.to_string());
+            if activity.kind == ActivityType::Custom && activity.state.is_some() {
+                activity.state = Some(activity.state.unwrap().replace("{{shard}}", &shard_id.to_string()));
+            }
             // Will only error if activities are empty, so we can unwrap
             builder = builder.presence(
                 UpdatePresencePayload::new(vec![activity], false, None, CONFIG.status).unwrap(),
