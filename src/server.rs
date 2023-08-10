@@ -391,10 +391,10 @@ async fn handler(
                 .unwrap()
         }
         ["health"] => get_health(&state),
-        ["cache", "guild", id] => handle_cache_guild(id.clone(), &state),
-        ["cache", "channel", id] => handle_cache_channel(id.clone(), &state),
-        ["cache", "user", id] => handle_cache_user(id.clone(), &state),
-        ["cache", "is_botuser", id] => handle_cache_isbotuser(id.clone(), &state),
+        ["cache", "guild", id] => handle_cache_guild(id, &state),
+        ["cache", "channel", id] => handle_cache_channel(id, &state),
+        ["cache", "user", id] => handle_cache_user(id, &state),
+        ["cache", "is_botuser", id] => handle_cache_isbotuser(id, &state),
 
         // Usually one would return a 404 here, but we will just provide the websocket
         // upgrade for backwards compatibility.
