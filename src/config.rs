@@ -25,7 +25,9 @@ pub struct Config {
     #[serde(default = "default_port")]
     pub port: u16,
     #[serde(default)]
-    pub webhook_url: Option<String>,
+    pub webhook_events_url: Option<String>,
+    #[serde(default)]
+    pub webhook_guilds_url: Option<String>,
     #[serde(default)]
     pub shards: Option<u32>,
     #[serde(default)]

@@ -30,7 +30,7 @@ use std::{
 };
 
 use crate::config::CONFIG;
-use discord_log::discord_log;
+use discord_log::discord_events_log;
 
 mod cache;
 mod config;
@@ -98,11 +98,12 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
     let mut shards = Vec::with_capacity((shard_end - shard_start) as usize);
 
     info!("Creating shards {shard_start} to {shard_end_inclusive} of {shard_count} total",);
-    discord_log(
+    discord_events_log(
         client.clone(),
         0x0060_7d8b,
         format!("Gateway starting with {shard_count} shards..."),
         "",
+        false,
     );
 
     let config = Config::builder(CONFIG.token.clone(), CONFIG.intents)

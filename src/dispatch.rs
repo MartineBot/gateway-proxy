@@ -3,7 +3,7 @@ use itoa::Buffer;
 use simd_json::Mutable;
 use tokio::{sync::broadcast, time::Instant};
 use tracing::{info, trace};
-use twilight_gateway::{parse, ConnectionStatus, Event, EventType, EventTypeFlags, Message, Shard};
+use twilight_gateway::{parse, ConnectionStatus, Event, EventTypeFlags, Message, Shard};
 use twilight_model::gateway::event::GatewayEvent as TwilightGatewayEvent;
 
 use std::{sync::Arc, time::Duration};
@@ -11,7 +11,7 @@ use std::{sync::Arc, time::Duration};
 use crate::{
     config::CONFIG,
     deserializer::{EventTypeInfo, GatewayEvent, SequenceInfo},
-    discord_log::discord_log,
+    discord_log::discord_events_log,
     model::Ready,
     state::Shard as ShardState,
 };
@@ -104,19 +104,21 @@ pub async fn events(
                     shard_state.ready.set_ready(ready.d);
                     is_ready = true;
                     info!("[Shard {shard_id_str}/{shard_count}] Ready!");
-                    discord_log(
+                    discord_events_log(
                         client.clone(),
                         0x002E_CC71,
                         "Shard Ready",
                         format!("Shard `{shard_id_str}/{shard_count}` is ready!"),
+                        false,
                     );
                 } else if event_name == "RESUMED" {
                     is_ready = true;
-                    discord_log(
+                    discord_events_log(
                         client.clone(),
                         0x001A_BC9C,
                         "Shard Resumed",
                         format!("Shard `{shard_id_str}` has resumed."),
+                        false,
                     );
                 } else if op.0 == 0 && is_ready {
                     // We only want to relay dispatchable events, not RESUMEs and not READY
@@ -132,15 +134,13 @@ pub async fn events(
                 match gateway_event {
                     TwilightGatewayEvent::Dispatch(_, gateway_event) => {
                         let event = Event::from(gateway_event);
-                        if event.kind() == EventType::GatewayClose {
-                            discord_log(
-                                client.clone(),
-                                0x00FF_0000,
-                                "Shard Disconnected",
-                                format!("Shard `{shard_id_str}` has disconnected."),
-                            );
-                        }
-                        shard_state.guilds.update(event);
+                        log_events(
+                            event.clone(),
+                            client.clone(),
+                            &shard_id_str.clone(),
+                            &shard_state,
+                        );
+                        shard_state.guilds.update(event.clone());
                     }
                     TwilightGatewayEvent::InvalidateSession(can_resume) => {
                         info!("[Shard {shard_id}] Session invalidated, resumable: {can_resume}");
@@ -156,6 +156,59 @@ pub async fn events(
                 }
             }
         }
+    }
+}
+
+fn log_events(
+    event: Event,
+    client: Arc<twilight_http::Client>,
+    shard_id_str: &str,
+    shard_state: &ShardState,
+) {
+    match Some(event) {
+        Some(Event::GatewayClose(_)) => {
+            discord_events_log(
+                client,
+                0x00FF_0000,
+                "Shard Disconnected",
+                format!("Shard `{shard_id_str}` has disconnected."),
+                false,
+            );
+        }
+        Some(Event::GuildCreate(data)) => {
+            if !shard_state.ready.is_ready() || data.unavailable {
+                return;
+            }
+            let guild_name = &data.name;
+            let guild_id = data.id;
+            let owner_id = data.owner_id;
+            let preferred_locale = &data.preferred_locale;
+            let member_count = data.member_count.unwrap_or_default();
+            // TODO: Add total guilds count.
+            discord_events_log(
+                client,
+                0x0000_FF00,
+                "Guild Joined",
+                format!(
+                    "**Name:** `{guild_name}`\n**Members:** `{member_count}`\n**Locale:** `{preferred_locale}`\n**Owner ID:** `{owner_id}`\n**ID:** `{guild_id}`"
+                ),
+                true,
+            );
+        }
+        Some(Event::GuildDelete(data)) => {
+            // if !data.unavailable {
+            //     return;
+            // }
+            let guild_id = data.id;
+            discord_events_log(
+                client,
+                0x00FF_0000,
+                "Guild Left",
+                format!("**ID:** `{guild_id}`"),
+                true,
+            );
+        }
+        Some(_) | None => {}
     }
 }
 

@@ -5,21 +5,26 @@ use tracing::warn;
 use twilight_http::Client;
 use twilight_util::{builder::embed::EmbedBuilder, link::webhook as webhook_link};
 
-pub fn discord_log(
+pub fn discord_events_log(
     client: Arc<Client>,
     color: usize,
     title: impl Into<String>,
     message: impl Into<String>,
+    is_guild_log: bool,
 ) {
     let title: String = title.into();
     let message: String = message.into();
 
     tokio::spawn(async move {
-        let webhook_url = CONFIG.webhook_url.clone().unwrap();
-        if webhook_url.is_empty() {
+        let webhook_events_url = if is_guild_log {
+            CONFIG.webhook_guilds_url.clone().unwrap()
+        } else {
+            CONFIG.webhook_events_url.clone().unwrap()
+        };
+        if webhook_events_url.is_empty() {
             return;
         }
-        let Ok((webhook_id, webhook_token)) = webhook_link::parse(&webhook_url) else {
+        let Ok((webhook_id, webhook_token)) = webhook_link::parse(&webhook_events_url) else {
             warn!("Invalid webhook URL");
             return;
         };
