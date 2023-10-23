@@ -117,12 +117,12 @@ pub async fn events(
                 );
             } else if event_name == "RESUMED" {
                 is_ready = true;
-                discord_log(
-                    client.clone(),
-                    0x001A_BC9C,
-                    "Shard Resumed",
-                    format!("Shard `{shard_id_str}` has resumed."),
-                );
+                // discord_log(
+                //     client.clone(),
+                //     0x001A_BC9C,
+                //     "Shard Resumed",
+                //     format!("Shard `{shard_id_str}` has resumed."),
+                // );
             } else if op.0 == 0 && is_ready {
                 // We only want to relay dispatchable events, not RESUMEs and not READY
                 // because we fake a READY event
