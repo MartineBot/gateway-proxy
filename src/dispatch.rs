@@ -2,11 +2,14 @@ use itoa::Buffer;
 #[cfg(feature = "simd-json")]
 use simd_json::Mutable;
 use tokio::{sync::broadcast, time::Instant};
-use tracing::{info, trace};
+use tracing::{info, trace, debug};
 use twilight_gateway::{parse, ConnectionStatus, Event, EventType, EventTypeFlags, Message, Shard};
 use twilight_model::gateway::event::GatewayEvent as TwilightGatewayEvent;
 
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{atomic::Ordering, Arc},
+    time::Duration,
+};
 
 use crate::{
     config::CONFIG,
@@ -14,6 +17,7 @@ use crate::{
     discord_log::discord_log,
     model::Ready,
     state::Shard as ShardState,
+    SHUTDOWN,
 };
 
 pub type BroadcastMessage = (String, Option<SequenceInfo>);
@@ -50,13 +54,15 @@ pub async fn events(
             last_metrics_update = now;
         }
 
-        let msg = match shard.next_message().await {
-            Ok(msg) => msg,
+        let payload = match shard.next_message().await {
+            Ok(Message::Text(payload)) => payload,
+            Ok(Message::Close(_)) if SHUTDOWN.load(Ordering::Relaxed) => return,
+            Ok(Message::Close(_)) => continue,
             Err(e) => {
                 tracing::error!("Error receiving message: {e}");
 
                 if e.is_fatal() {
-                    break;
+                    return;
                 }
 
                 continue;
@@ -66,94 +72,92 @@ pub async fn events(
         // NOTE: payload cannot be modified because we have to do optional event parsing
         // later. Don't use simd_json::from_str on it because that will make the data useless.
         // Instead, clone it before mutating.
-        if let Message::Text(payload) = msg {
-            let Some(event) = GatewayEvent::from_json(&payload) else {
-                tracing::error!("Failed to deserialize gateway event");
-                continue;
-            };
+        let Some(event) = GatewayEvent::from_json(&payload) else {
+            tracing::error!("Failed to deserialize gateway event");
+            continue;
+        };
 
-            let (op, sequence, event_type) = event.into_parts();
+        let (op, sequence, event_type) = event.into_parts();
 
-            if let Some(EventTypeInfo(event_name, _)) = event_type {
-                metrics::increment_counter!("gateway_shard_events", "shard" => shard_id_str.clone(), "event_type" => event_name.to_owned());
+        if let Some(EventTypeInfo(event_name, _)) = event_type {
+            metrics::increment_counter!("gateway_shard_events", "shard" => shard_id_str.clone(), "event_type" => event_name.to_owned());
 
-                if event_name == "READY" {
-                    // Use the raw JSON from READY to create a new blank READY
+            if event_name == "READY" {
+                // Use the raw JSON from READY to create a new blank READY
 
-                    #[cfg(feature = "simd-json")]
-                    let mut ready: Ready =
-                        unsafe { simd_json::from_str(&mut payload.clone()).unwrap() };
-                    #[cfg(not(feature = "simd-json"))]
-                    let mut ready: Ready = serde_json::from_str(&payload).unwrap();
+                #[cfg(feature = "simd-json")]
+                let mut ready: Ready =
+                    unsafe { simd_json::from_str(&mut payload.clone()).unwrap() };
+                #[cfg(not(feature = "simd-json"))]
+                let mut ready: Ready = serde_json::from_str(&payload).unwrap();
 
-                    // Clear the guilds
-                    if let Some(guilds) = ready.d.get_mut("guilds") {
-                        if let Some(arr) = guilds.as_array_mut() {
-                            arr.clear();
-                        }
+                // Clear the guilds
+                if let Some(guilds) = ready.d.get_mut("guilds") {
+                    if let Some(arr) = guilds.as_array_mut() {
+                        arr.clear();
                     }
-
-                    // Override resume_gateway_url with the external URI of the proxy
-                    // ready.d.insert(
-                    //     String::from("resume_gateway_url"),
-                    //     CONFIG.externally_accessible_url.clone().into(),
-                    // );
-
-                    // We don't care if it was already set
-                    // since this data is timeless
-                    shard_state.ready.set_ready(ready.d);
-                    is_ready = true;
-                    info!("[Shard {shard_id_str}/{shard_count}] Ready!");
-                    discord_log(
-                        client.clone(),
-                        0x002E_CC71,
-                        "Shard Ready",
-                        format!("Shard `{shard_id_str}/{shard_count}` is ready!"),
-                    );
-                } else if event_name == "RESUMED" {
-                    is_ready = true;
-                    discord_log(
-                        client.clone(),
-                        0x001A_BC9C,
-                        "Shard Resumed",
-                        format!("Shard `{shard_id_str}` has resumed."),
-                    );
-                } else if op.0 == 0 && is_ready {
-                    // We only want to relay dispatchable events, not RESUMEs and not READY
-                    // because we fake a READY event
-                    let payload_copy = payload.clone();
-                    trace!("[Shard {shard_id_str}] Sending payload to clients: {payload_copy:?}",);
-
-                    let _res = broadcast_tx.send((payload_copy, sequence));
                 }
+
+                // Override resume_gateway_url with the external URI of the proxy
+                ready.d.insert(
+                    String::from("resume_gateway_url"),
+                    CONFIG.externally_accessible_url.clone().into(),
+                );
+
+                // We don't care if it was already set
+                // since this data is timeless
+                shard_state.ready.set_ready(ready.d);
+                is_ready = true;
+                info!("[Shard {shard_id_str}/{shard_count}] Ready!");
+                discord_log(
+                    client.clone(),
+                    0x002E_CC71,
+                    "Shard Ready",
+                    format!("Shard `{shard_id_str}/{shard_count}` is ready!"),
+                );
+            } else if event_name == "RESUMED" {
+                is_ready = true;
+                discord_log(
+                    client.clone(),
+                    0x001A_BC9C,
+                    "Shard Resumed",
+                    format!("Shard `{shard_id_str}` has resumed."),
+                );
+            } else if op.0 == 0 && is_ready {
+                // We only want to relay dispatchable events, not RESUMEs and not READY
+                // because we fake a READY event
+                let payload_copy = payload.clone();
+                trace!("[Shard {shard_id}] Sending payload to clients: {payload_copy:?}",);
+
+                let _res = broadcast_tx.send((payload_copy, sequence));
             }
+        }
 
-            if let Ok(Some(gateway_event)) = parse(payload, event_type_flags) {
-                match gateway_event {
-                    TwilightGatewayEvent::Dispatch(_, gateway_event) => {
-                        let event = Event::from(gateway_event);
-                        if event.kind() == EventType::GatewayClose {
-                            discord_log(
-                                client.clone(),
-                                0x00FF_0000,
-                                "Shard Disconnected",
-                                format!("Shard `{shard_id_str}` has disconnected."),
-                            );
-                        }
-                        shard_state.guilds.update(event);
+        if let Ok(Some(gateway_event)) = parse(payload, event_type_flags) {
+            match gateway_event {
+                TwilightGatewayEvent::Dispatch(_, gateway_event) => {
+                    let event = Event::from(gateway_event);
+                    if event.kind() == EventType::GatewayClose {
+                        discord_log(
+                            client.clone(),
+                            0x00FF_0000,
+                            "Shard Disconnected",
+                            format!("Shard `{shard_id_str}` has disconnected."),
+                        );
                     }
-                    TwilightGatewayEvent::InvalidateSession(can_resume) => {
-                        info!("[Shard {shard_id}] Session invalidated, resumable: {can_resume}");
-                        if !can_resume {
-                            // We can only reset the READY state if we know that we will get a new READY,
-                            // which is the case if we can not resume.
-                            shard_state.ready.set_not_ready();
-                        }
-                        // Suspend sending events to clients until READY or RESUMED are received.
-                        is_ready = false;
-                    }
-                    _ => {}
+                    shard_state.guilds.update(event);
                 }
+                TwilightGatewayEvent::InvalidateSession(can_resume) => {
+                    debug!("[Shard {shard_id}] Session invalidated, resumable: {can_resume}");
+                    if !can_resume {
+                        // We can only reset the READY state if we know that we will get a new READY,
+                        // which is the case if we can not resume.
+                        shard_state.ready.set_not_ready();
+                    }
+                    // Suspend sending events to clients until READY or RESUMED are received.
+                    is_ready = false;
+                }
+                _ => {}
             }
         }
     }
