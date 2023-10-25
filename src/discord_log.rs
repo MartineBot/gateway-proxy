@@ -15,7 +15,8 @@ pub fn discord_log(
     let message: String = message.into();
 
     tokio::spawn(async move {
-        let webhook_url = CONFIG.webhook_url.clone().unwrap();
+        let binding = "".to_string();
+        let webhook_url = CONFIG.webhook_url.as_ref().unwrap_or(&binding);
         if webhook_url.is_empty() {
             return;
         }
