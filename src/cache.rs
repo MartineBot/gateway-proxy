@@ -374,7 +374,6 @@ impl Guilds {
                     presences,
                     roles,
                     rules_channel_id: guild.rules_channel_id(),
-                    safety_alerts_channel_id: guild.safety_alerts_channel_id(),
                     splash: guild.splash().map(ToOwned::to_owned),
                     stage_instances,
                     stickers,
@@ -387,7 +386,7 @@ impl Guilds {
                     voice_states,
                     widget_channel_id: guild.widget_channel_id(),
                     widget_enabled: guild.widget_enabled(),
-                    // safety_alerts_channel_id: guild.safety_alerts_channel_id(),
+                    safety_alerts_channel_id: guild.safety_alerts_channel_id(),
                 };
 
                 let guild_create = GuildCreate(new_guild);

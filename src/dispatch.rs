@@ -2,7 +2,7 @@ use itoa::Buffer;
 #[cfg(feature = "simd-json")]
 use simd_json::Mutable;
 use tokio::{sync::broadcast, time::Instant};
-use tracing::{info, trace, debug};
+use tracing::{info, trace};
 use twilight_gateway::{parse, ConnectionStatus, Event, EventType, EventTypeFlags, Message, Shard};
 use twilight_model::gateway::event::GatewayEvent as TwilightGatewayEvent;
 
@@ -99,10 +99,10 @@ pub async fn events(
                 }
 
                 // Override resume_gateway_url with the external URI of the proxy
-                ready.d.insert(
-                    String::from("resume_gateway_url"),
-                    CONFIG.externally_accessible_url.clone().into(),
-                );
+                // ready.d.insert(
+                //     String::from("resume_gateway_url"),
+                //     CONFIG.externally_accessible_url.clone().into(),
+                // );
 
                 // We don't care if it was already set
                 // since this data is timeless
@@ -127,7 +127,7 @@ pub async fn events(
                 // We only want to relay dispatchable events, not RESUMEs and not READY
                 // because we fake a READY event
                 let payload_copy = payload.clone();
-                trace!("[Shard {shard_id}] Sending payload to clients: {payload_copy:?}",);
+                trace!("[Shard {shard_id_str}] Sending payload to clients: {payload_copy:?}",);
 
                 let _res = broadcast_tx.send((payload_copy, sequence));
             }
@@ -148,7 +148,7 @@ pub async fn events(
                     shard_state.guilds.update(event);
                 }
                 TwilightGatewayEvent::InvalidateSession(can_resume) => {
-                    debug!("[Shard {shard_id}] Session invalidated, resumable: {can_resume}");
+                    info!("[Shard {shard_id}] Session invalidated, resumable: {can_resume}");
                     if !can_resume {
                         // We can only reset the READY state if we know that we will get a new READY,
                         // which is the case if we can not resume.
