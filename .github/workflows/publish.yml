@@ -4,6 +4,8 @@ on:
   push:
     branches: ["martine"]
 
+  workflow_dispatch:
+
 jobs:
   build-docker-images:
     strategy:
