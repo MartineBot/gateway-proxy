@@ -15,12 +15,12 @@ pub fn discord_log(
     let message: String = message.into();
 
     tokio::spawn(async move {
-        let binding = "".to_string();
+        let binding = String::new();
         let webhook_url = CONFIG.webhook_url.as_ref().unwrap_or(&binding);
         if webhook_url.is_empty() {
             return;
         }
-        let Ok((webhook_id, webhook_token)) = webhook_link::parse(&webhook_url) else {
+        let Ok((webhook_id, webhook_token)) = webhook_link::parse(webhook_url) else {
             warn!("Invalid webhook URL");
             return;
         };

@@ -1,6 +1,8 @@
+use bytes::Bytes;
 #[cfg(feature = "simd-json")]
 use halfbrown::hashmap;
-use hyper::{Body, Response};
+use http_body_util::Full;
+use hyper::Response;
 use serde::Serialize;
 #[cfg(not(feature = "simd-json"))]
 use serde_json::{to_string, Value as OwnedValue};
@@ -42,11 +44,11 @@ pub enum Event {
     GuildDelete(GuildDelete),
 }
 
-pub struct Guilds(Arc<InMemoryCache>, u32);
+pub struct Guilds(Arc<InMemoryCache>);
 
 impl Guilds {
-    pub fn new(cache: Arc<InMemoryCache>, shard_id: u32) -> Self {
-        Self(cache, shard_id)
+    pub fn new(cache: Arc<InMemoryCache>) -> Self {
+        Self(cache)
     }
 
     pub fn cache(&self) -> Arc<InMemoryCache> {
@@ -403,30 +405,30 @@ impl Guilds {
     }
 }
 
-pub fn not_found_body(type_name: &str) -> Body {
+pub fn not_found_body(type_name: &str) -> Full<Bytes> {
     let body = to_string(&HashMap::from([(
         "message",
         format!("Unknown {type_name}"),
     )]))
     .unwrap();
-    Body::from(body)
+    Full::from(body)
 }
 
-fn serialize_fail_body(type_name: &str) -> Body {
+fn serialize_fail_body(type_name: &str) -> Full<Bytes> {
     let body = to_string(&HashMap::from([(
         "message",
         format!("Failed to serialize {type_name}"),
     )]))
     .unwrap();
-    Body::from(body)
+    Full::from(body)
 }
 
-fn bad_request_body() -> Body {
+fn bad_request_body() -> Full<Bytes> {
     let body = to_string(&HashMap::from([("message", "Bad Request")])).unwrap();
-    Body::from(body)
+    Full::from(body)
 }
 
-pub fn handle_cache_guild(value: &str, state: &State) -> Response<Body> {
+pub fn handle_cache_guild(value: &str, state: &State) -> Response<Full<Bytes>> {
     let response = Response::builder().header("Content-Type", "application/json");
     let Ok(id) = value.parse::<u64>() else {
         return response.status(400).body(bad_request_body()).unwrap();
@@ -448,7 +450,7 @@ pub fn handle_cache_guild(value: &str, state: &State) -> Response<Body> {
     }
 
     if let Ok(serialized) = to_string(&guild.unwrap()) {
-        return response.body(Body::from(serialized)).unwrap();
+        return response.body(Full::from(serialized)).unwrap();
     }
 
     response
@@ -457,7 +459,7 @@ pub fn handle_cache_guild(value: &str, state: &State) -> Response<Body> {
         .unwrap()
 }
 
-pub fn handle_cache_channel(value: &str, state: &State) -> Response<Body> {
+pub fn handle_cache_channel(value: &str, state: &State) -> Response<Full<Bytes>> {
     let response = Response::builder().header("Content-Type", "application/json");
     let Ok(id) = value.parse::<u64>() else {
         return response.status(400).body(bad_request_body()).unwrap();
@@ -482,7 +484,7 @@ pub fn handle_cache_channel(value: &str, state: &State) -> Response<Body> {
     }
 
     if let Ok(serialized) = to_string(&channel.unwrap()) {
-        return response.body(Body::from(serialized)).unwrap();
+        return response.body(Full::from(serialized)).unwrap();
     }
 
     response
@@ -491,7 +493,7 @@ pub fn handle_cache_channel(value: &str, state: &State) -> Response<Body> {
         .unwrap()
 }
 
-pub fn handle_cache_user(value: &str, state: &State) -> Response<Body> {
+pub fn handle_cache_user(value: &str, state: &State) -> Response<Full<Bytes>> {
     let response = Response::builder().header("Content-Type", "application/json");
     let Ok(id) = value.parse::<u64>() else {
         return response.status(400).body(bad_request_body()).unwrap();
@@ -513,7 +515,7 @@ pub fn handle_cache_user(value: &str, state: &State) -> Response<Body> {
     }
 
     if let Ok(serialized) = to_string(&user.unwrap()) {
-        return response.body(Body::from(serialized)).unwrap();
+        return response.body(Full::from(serialized)).unwrap();
     }
 
     response
@@ -522,7 +524,7 @@ pub fn handle_cache_user(value: &str, state: &State) -> Response<Body> {
         .unwrap()
 }
 
-pub fn handle_cache_isbotuser(value: &str, state: &State) -> Response<Body> {
+pub fn handle_cache_isbotuser(value: &str, state: &State) -> Response<Full<Bytes>> {
     let response = Response::builder().header("Content-Type", "application/json");
     let Ok(id) = value.parse::<u64>() else {
         return response.status(400).body(bad_request_body()).unwrap();
@@ -551,7 +553,7 @@ pub fn handle_cache_isbotuser(value: &str, state: &State) -> Response<Body> {
     }
 
     response
-        .body(Body::from(
+        .body(Full::from(
             to_string(&HashMap::from([("found", found)])).unwrap(),
         ))
         .unwrap()
