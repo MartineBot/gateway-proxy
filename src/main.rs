@@ -21,7 +21,7 @@ use tracing_subscriber::{
     filter::LevelFilter, layer::SubscriberExt, reload, util::SubscriberInitExt,
 };
 use twilight_cache_inmemory::InMemoryCache;
-use twilight_gateway::{CloseFrame, Config, ConfigBuilder, Shard, ShardId};
+use twilight_gateway::{CloseFrame, ConfigBuilder, Shard, ShardId};
 use twilight_gateway_queue::InMemoryQueue;
 use twilight_http::Client;
 use twilight_model::gateway::{

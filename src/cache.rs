@@ -45,7 +45,7 @@ pub enum Event {
 pub struct Guilds(Arc<InMemoryCache>, u32);
 
 impl Guilds {
-    pub fn new(cache: Arc<InMemoryCache>, shard_id: u32) -> Self {
+    pub const fn new(cache: Arc<InMemoryCache>, shard_id: u32) -> Self {
         Self(cache, shard_id)
     }
 

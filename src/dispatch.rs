@@ -1,8 +1,8 @@
+use futures_util::StreamExt;
 use itoa::Buffer;
 #[cfg(feature = "simd-json")]
 use simd_json::Mutable;
 use tokio::{sync::broadcast, time::Instant};
-use futures_util::StreamExt;
 use tracing::{info, trace};
 use twilight_gateway::{parse, Event, EventType, EventTypeFlags, Message, Shard};
 use twilight_model::gateway::event::GatewayEvent as TwilightGatewayEvent;
@@ -32,7 +32,7 @@ pub async fn events(
     shard_count: u32,
     broadcast_tx: broadcast::Sender<BroadcastMessage>,
     client: Arc<twilight_http::Client>,
-){
+) {
     // This method only wants to relay events while the shard is in a READY state
     // Therefore, we only put events in the queue while we are connected and READY
     let mut is_ready = false;
@@ -168,7 +168,7 @@ pub fn update_shard_statistics(
 ) {
     // We don't want to depend on a specific twilight type name here. Use the
     // Debug representation to determine a rough numeric status mapping.
-    let status_str = format!("{:?}", connection_status);
+    let status_str = format!("{connection_status:?}");
     let connection_status = if status_str.contains("Connected") {
         4.0
     } else if status_str.contains("Identifying") {

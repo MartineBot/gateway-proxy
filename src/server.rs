@@ -53,7 +53,7 @@ fn compress_full(compressor: &mut Compress, output: &mut Vec<u8>, input: &[u8]) 
             .compress_vec(&input[offset..], output, FlushCompress::None)
             .unwrap()
         {
-            Status::Ok => continue,
+            Status::Ok => (),
             Status::BufError => output.reserve(4096),
             Status::StreamEnd => break,
         }
@@ -65,7 +65,7 @@ fn compress_full(compressor: &mut Compress, output: &mut Vec<u8>, input: &[u8]) 
             .compress_vec(&[], output, FlushCompress::Sync)
             .unwrap()
         {
-            Status::Ok | Status::BufError => continue,
+            Status::Ok | Status::BufError => (),
             Status::StreamEnd => break,
         }
     }
@@ -144,7 +144,7 @@ async fn forward_shard(
         if let Ok(serialized) = to_string(&ready_payload) {
             debug!("[Shard {shard_id}] Sending newly created READY");
             let _res = stream_writer.send(Message::Text(serialized));
-        };
+        }
 
         // Send GUILD_CREATE/GUILD_DELETEs based on guild availability
         for payload in shard_status.guilds.get_guild_payloads(&mut seq) {
@@ -153,7 +153,7 @@ async fn forward_shard(
                     "[Shard {shard_id}] Sending newly created GUILD_CREATE/GUILD_DELETE payload",
                 );
                 let _res = stream_writer.send(Message::Text(serialized));
-            };
+            }
         }
     } else {
         let _res = stream_writer.send(Message::Text(RESUMED.to_string()));
