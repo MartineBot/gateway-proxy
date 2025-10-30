@@ -13,7 +13,8 @@ halfbrown = { version = "0.2", features = ["serde"] }
 hyper = { version = "0.14", default-features = false, features = [
     "server",
     "http1",
-    "http2"
+    "http2",
+    "tcp"
 ] }
 inotify = { version = "0.10", default-features = false, features = ["stream"] }
 itoa = "1.0"

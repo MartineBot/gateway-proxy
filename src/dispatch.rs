@@ -2,8 +2,9 @@ use itoa::Buffer;
 #[cfg(feature = "simd-json")]
 use simd_json::Mutable;
 use tokio::{sync::broadcast, time::Instant};
+use futures_util::StreamExt;
 use tracing::{info, trace};
-use twilight_gateway::{parse, ConnectionStatus, Event, EventType, EventTypeFlags, Message, Shard};
+use twilight_gateway::{parse, Event, EventType, EventTypeFlags, Message, Shard};
 use twilight_model::gateway::event::GatewayEvent as TwilightGatewayEvent;
 
 use std::{
@@ -25,13 +26,13 @@ pub type BroadcastMessage = (String, Option<SequenceInfo>);
 const TEN_SECONDS: Duration = Duration::from_secs(10);
 
 pub async fn events(
-    mut shard: Shard,
+    mut shard: Shard<twilight_gateway_queue::InMemoryQueue>,
     shard_state: Arc<ShardState>,
     shard_id: u32,
     shard_count: u32,
     broadcast_tx: broadcast::Sender<BroadcastMessage>,
     client: Arc<twilight_http::Client>,
-) {
+){
     // This method only wants to relay events while the shard is in a READY state
     // Therefore, we only put events in the queue while we are connected and READY
     let mut is_ready = false;
@@ -49,24 +50,20 @@ pub async fn events(
 
         if now.duration_since(last_metrics_update) > TEN_SECONDS {
             let latencies = shard.latency().recent();
-            let info = shard.status();
-            update_shard_statistics(&shard_id_str, &shard_state, info, latencies);
+            let info = shard.state();
+            update_shard_statistics(&shard_id_str, &shard_state, &info, latencies);
             last_metrics_update = now;
         }
 
-        let payload = match shard.next_message().await {
-            Ok(Message::Text(payload)) => payload,
-            Ok(Message::Close(_)) if SHUTDOWN.load(Ordering::Relaxed) => return,
-            Ok(Message::Close(_)) => continue,
-            Err(e) => {
+        let payload = match shard.next().await {
+            Some(Ok(Message::Text(payload))) => payload,
+            Some(Ok(Message::Close(_))) if SHUTDOWN.load(Ordering::Relaxed) => return,
+            Some(Ok(Message::Close(_))) => continue,
+            Some(Err(e)) => {
                 tracing::error!("Error receiving message: {e}");
-
-                if e.is_fatal() {
-                    return;
-                }
-
                 continue;
             }
+            None => return,
         };
 
         // NOTE: payload cannot be modified because we have to do optional event parsing
@@ -166,16 +163,25 @@ pub async fn events(
 pub fn update_shard_statistics(
     shard_id: &str,
     shard_state: &Arc<ShardState>,
-    connection_status: &ConnectionStatus,
+    connection_status: &impl std::fmt::Debug,
     latencies: &[Duration],
 ) {
-    // There is no way around this, sadly
-    let connection_status = match connection_status {
-        ConnectionStatus::Connected => 4.0,
-        ConnectionStatus::Disconnected { .. } => 1.0,
-        ConnectionStatus::Identifying => 2.0,
-        ConnectionStatus::Resuming => 3.0,
-        ConnectionStatus::FatallyClosed { .. } => 0.0,
+    // We don't want to depend on a specific twilight type name here. Use the
+    // Debug representation to determine a rough numeric status mapping.
+    let status_str = format!("{:?}", connection_status);
+    let connection_status = if status_str.contains("Connected") {
+        4.0
+    } else if status_str.contains("Identifying") {
+        2.0
+    } else if status_str.contains("Resuming") {
+        3.0
+    } else if status_str.contains("Disconnected") {
+        1.0
+    } else if status_str.contains("FatallyClosed") {
+        0.0
+    } else {
+        // Unknown state
+        f64::NAN
     };
 
     let latency = latencies.first().map_or(f64::NAN, Duration::as_secs_f64);

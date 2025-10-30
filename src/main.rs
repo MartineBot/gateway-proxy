@@ -112,9 +112,8 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
         "",
     );
 
-    let config = Config::builder(CONFIG.token.clone(), CONFIG.intents)
-        .queue(Arc::new(queue))
-        .event_types(CONFIG.cache.clone().into())
+    let config = ConfigBuilder::new(CONFIG.token.clone(), CONFIG.intents)
+        .queue(queue.clone())
         .build();
 
     let mut dispatch_tasks = JoinSet::new();
