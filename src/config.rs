@@ -267,7 +267,7 @@ pub async fn watch_config_changes<S>(reload_handle: reload::Handle<LevelFilter, 
     {
         tracing::error!("Failed to add inotify watch, log-levels cannot be reloaded on the fly");
         return;
-    };
+    }
 
     tracing::debug!("Inotify is initialized");
 
