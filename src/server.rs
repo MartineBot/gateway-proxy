@@ -407,7 +407,7 @@ async fn handler(
 
         // Usually one would return a 404 here, but we will just provide the websocket
         // upgrade for backwards compatibility.
-        _ => upgrade::server(addr, request, state).await,
+        _ => upgrade::server(addr, request, state),
     };
 
     Ok(response)
