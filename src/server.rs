@@ -384,6 +384,7 @@ async fn handler(
     let response = match segments[..] {
         ["metrics"] => Response::builder()
             .status(StatusCode::OK)
+            .header(hyper::header::CONTENT_TYPE, "text/plain; version=0.0.4; charset=utf-8")
             .body(Body::from(metrics.render()))
             .unwrap(),
         ["shard-count"] => {
