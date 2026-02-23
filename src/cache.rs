@@ -64,15 +64,16 @@ impl Guilds {
     pub fn get_ready_payload(&self, mut ready: JsonObject, sequence: &mut usize) -> Payload {
         *sequence += 1;
 
-        let unavailable_guilds = self
-            .0
-            .iter()
-            .guilds()
-            .map(|guild| {
+        let available_guilds = self.0.iter().guilds().map(|guild| guild.id());
+        let unavailable_guild_ids = self.0.iter().unavailable_guilds();
+
+        let unavailable_guilds = available_guilds
+            .chain(unavailable_guild_ids)
+            .map(|id| {
                 #[cfg(feature = "simd-json")]
                 {
                     hashmap! {
-                        String::from("id") => guild.id().to_string().into(),
+                        String::from("id") => id.to_string().into(),
                         String::from("unavailable") => true.into(),
                     }
                     .into()
@@ -80,7 +81,7 @@ impl Guilds {
                 #[cfg(not(feature = "simd-json"))]
                 {
                     serde_json::json!({
-                        "id": guild.id().to_string(),
+                        "id": id.to_string(),
                         "unavailable": true
                     })
                 }
@@ -307,11 +308,10 @@ impl Guilds {
             .unwrap_or_default()
     }
 
-    pub fn get_guild_payloads<'a>(
-        &'a self,
-        sequence: &'a mut usize,
-    ) -> impl Iterator<Item = Payload> + 'a {
-        self.0.iter().guilds().map(move |guild| {
+    pub fn get_guild_payloads(&self, sequence: &mut usize) -> Vec<Payload> {
+        let mut payloads = Vec::new();
+
+        for guild in self.0.iter().guilds() {
             *sequence += 1;
 
             if guild.unavailable() {
@@ -320,12 +320,12 @@ impl Guilds {
                     unavailable: true,
                 };
 
-                Payload {
+                payloads.push(Payload {
                     d: Event::GuildDelete(guild_delete),
                     op: OpCode::Dispatch,
                     t: String::from("GUILD_DELETE"),
                     s: *sequence,
-                }
+                });
             } else {
                 let guild_channels = self.channels_in_guild(guild.id());
                 let presences = self.presences_in_guild(guild.id());
@@ -391,14 +391,33 @@ impl Guilds {
 
                 let guild_create = GuildCreate(new_guild);
 
-                Payload {
+                payloads.push(Payload {
                     d: Event::GuildCreate(Box::new(guild_create)),
                     op: OpCode::Dispatch,
                     t: String::from("GUILD_CREATE"),
                     s: *sequence,
-                }
+                });
             }
-        })
+        }
+
+        // Also send GUILD_DELETE for guilds in the unavailable set
+        for guild_id in self.0.iter().unavailable_guilds() {
+            *sequence += 1;
+
+            let guild_delete = GuildDelete {
+                id: guild_id,
+                unavailable: true,
+            };
+
+            payloads.push(Payload {
+                d: Event::GuildDelete(guild_delete),
+                op: OpCode::Dispatch,
+                t: String::from("GUILD_DELETE"),
+                s: *sequence,
+            });
+        }
+
+        payloads
     }
 }
 
